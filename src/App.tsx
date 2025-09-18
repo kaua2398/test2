@@ -75,7 +75,7 @@ function App() {
     setStatus({ type: 'loading' });
 
     try {
-      const response = await fetch('http://localhost:3333/api/solicitacao', {
+      const response = await fetch('/api/solicitacao', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
