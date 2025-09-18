@@ -38,3 +38,4 @@ deploy:
     - export R_ENV="${RANCHER_ENV:-Default}"
     - upgrade --environment "$R_ENV" --stack "Formulario-Banco-Producao" --service "formulario-backend" --new-image "$REGISTRY_ADDRESS/formulario-backend:prod"
     - upgrade --environment "$R_ENV" --stack "Formulario-Banco-Producao" --service "formulario-frontend" --new-image "$REGISTRY_ADDRESS/formulario-frontend:prod"
+    
