@@ -1,28 +1,23 @@
-# ---------- deps (com dev) ----------
+# ---------- deps ----------
 FROM node:18-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
-# ---------- build (gera dist) ----------
+# ---------- build ----------
 FROM deps AS build
 WORKDIR /app
-COPY . .            # <--- contexto já é backend/
-RUN npm run build   # precisa do "build" no package.json (tsc)
+# copie só o necessário para build (melhor cache)
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build
 
-# ---------- runtime (prod only) ----------
+# ---------- runtime ----------
 FROM node:18-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-# Só deps de produção
 COPY package*.json ./
-RUN npm install --omit=dev
-
-# Copia o build final
+RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
-
-# Se você precisa de assets/config do runtime, copie aqui:
-# COPY --from=build /app/.env ./.env
-
 EXPOSE 3000
 CMD ["node", "dist/index.js"]
