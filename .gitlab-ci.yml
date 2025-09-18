@@ -1,120 +1,69 @@
 variables:
   DOCKER_DRIVER: overlay2
-  # Valor default; será sobrescrito por branch
   AMBIENTE: dev
 
 stages:
   - build
-  - push
   - deploy
 
-# ==========================
-# BUILD IMAGENS
-# ==========================
-.build_template:
+build:
   image: docker:24.0.9
   services:
     - name: docker:24.0.9-dind
-  before_script:
-    - echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_ADDRESS" -u "$REGISTRY_USERNAME" --password-stdin
-    # Define AMBIENTE pela branch
-    - |
-      if [ "$CI_COMMIT_REF_NAME" = "master" ]; then
-        export AMBIENTE=prod
-      elif [ "$CI_COMMIT_REF_NAME" = "HML" ]; then
-        export AMBIENTE=hml
-      else
-        export AMBIENTE=dev
-      fi
-    - echo "AMBIENTE=$AMBIENTE"
-
-build:
   stage: build
-  extends: .build_template
-  only:
-    - HML
-    - master
-    # acrescente outras branches se quiser dev
-  script:
-    # Tags com AMBIENTE e commit SHA (rastreabilidade)
-    - export TAG_AMB="$AMBIENTE"
-    - export TAG_SHA="$CI_COMMIT_SHORT_SHA"
-
-    # FRONTEND: contexto é a raiz do projeto
-    - docker build -t "$REGISTRY_ADDRESS/solicitacao-frontend:$TAG_AMB" -t "$REGISTRY_ADDRESS/solicitacao-frontend:$TAG_SHA" .
-
-    # BACKEND: contexto é a pasta backend/
-    - docker build -t "$REGISTRY_ADDRESS/solicitacao-backend:$TAG_AMB" -t "$REGISTRY_ADDRESS/solicitacao-backend:$TAG_SHA" backend
-
-# ==========================
-# PUSH IMAGENS
-# ==========================
-push:
-  stage: push
-  extends: .build_template
-  needs: ["build"]
   only:
     - HML
     - master
   script:
-    - export TAG_AMB="$AMBIENTE"
-    - export TAG_SHA="$CI_COMMIT_SHORT_SHA"
+    # Define AMBIENTE pela branch (igual ao seu exemplo)
+    - >
+      if [ "$CI_COMMIT_REF_NAME" == "master" ]; then
+          export AMBIENTE=prod
+      else
+          export AMBIENTE=hml
+      fi
+    # DNS local (igual ao seu exemplo)
+    - echo "nameserver 192.168.1.8" | tee /etc/resolv.conf
+    # Login no registry
+    - docker login "$REGISTRY_ADDRESS" --username "$REGISTRY_USERNAME" --password "$REGISTRY_PASSWORD"
 
-    - docker push "$REGISTRY_ADDRESS/solicitacao-frontend:$TAG_AMB"
-    - docker push "$REGISTRY_ADDRESS/solicitacao-frontend:$TAG_SHA"
+    # Build & Push FRONTEND (raiz do projeto)
+    - docker build --load -t $REGISTRY_ADDRESS/formulario-frontend:$AMBIENTE .
+    - docker push $REGISTRY_ADDRESS/formulario-frontend:$AMBIENTE
 
-    - docker push "$REGISTRY_ADDRESS/solicitacao-backend:$TAG_AMB"
-    - docker push "$REGISTRY_ADDRESS/solicitacao-backend:$TAG_SHA"
+    # Build & Push BACKEND (diretório backend/)
+    - docker build --load -t $REGISTRY_ADDRESS/formulario-backend:$AMBIENTE backend
+    - docker push $REGISTRY_ADDRESS/formulario-backend:$AMBIENTE
 
-# ==========================
-# DEPLOY NO RANCHER 1.6
-# ==========================
-.deploy_template:
+deploy:
   stage: deploy
-  image: cdrx/rancher-gitlab-deploy
-  # Essa imagem usa as envs: RANCHER_URL, RANCHER_ACCESS_KEY, RANCHER_SECRET_KEY
-  # e o comando 'upgrade' p/ trocar a imagem do serviço
-
-deploy-hml:
-  extends: .deploy_template
-  needs: ["push"]
   only:
     - HML
-  script:
-    - export AMBIENTE=hml
-    - export NEW_FRONT_IMG="$REGISTRY_ADDRESS/solicitacao-frontend:$AMBIENTE"
-    - export NEW_BACK_IMG="$REGISTRY_ADDRESS/solicitacao-backend:$AMBIENTE"
-
-    # Backend
-    - upgrade --environment "$RANCHER_ENV_HML" \
-              --stack "$RANCHER_STACK_HML" \
-              --service "$BACK_SERVICE_HML" \
-              --new-image "$NEW_BACK_IMG"
-
-    # Frontend
-    - upgrade --environment "$RANCHER_ENV_HML" \
-              --stack "$RANCHER_STACK_HML" \
-              --service "$FRONT_SERVICE_HML" \
-              --new-image "$NEW_FRONT_IMG"
-
-deploy-prod:
-  extends: .deploy_template
-  needs: ["push"]
-  only:
     - master
+  image: cdrx/rancher-gitlab-deploy
   script:
-    - export AMBIENTE=prod
-    - export NEW_FRONT_IMG="$REGISTRY_ADDRESS/solicitacao-frontend:$AMBIENTE"
-    - export NEW_BACK_IMG="$REGISTRY_ADDRESS/solicitacao-backend:$AMBIENTE"
-
-    # Backend
-    - upgrade --environment "$RANCHER_ENV_PROD" \
-              --stack "$RANCHER_STACK_PROD" \
-              --service "$BACK_SERVICE_PROD" \
-              --new-image "$NEW_BACK_IMG"
-
-    # Frontend
-    - upgrade --environment "$RANCHER_ENV_PROD" \
-              --stack "$RANCHER_STACK_PROD" \
-              --service "$FRONT_SERVICE_PROD" \
-              --new-image "$NEW_FRONT_IMG"
+    - >
+      if [ "$CI_COMMIT_REF_NAME" == "master" ]; then
+        # ===== PROD =====
+        # Stack já criada: Formulario-Banco-Producao
+        # Serviços padrão: formulario-backend / formulario-frontend
+        upgrade --environment Prod \
+                --stack Formulario-Banco-Producao \
+                --service formulario-backend \
+                --new-image $REGISTRY_ADDRESS/formulario-backend:prod
+        upgrade --environment Prod \
+                --stack Formulario-Banco-Producao \
+                --service formulario-frontend \
+                --new-image $REGISTRY_ADDRESS/formulario-frontend:prod
+      else
+        # ===== HML =====
+        # Usa APENAS as 3 variáveis que você criou
+        upgrade --environment Default \
+                --stack $RANCHER_STACK_HML \
+                --service $BACK_SERVICE_HML \
+                --new-image $REGISTRY_ADDRESS/formulario-backend:hml
+        upgrade --environment Default \
+                --stack $RANCHER_STACK_HML \
+                --service $FRONT_SERVICE_HML \
+                --new-image $REGISTRY_ADDRESS/formulario-frontend:hml
+      fi
