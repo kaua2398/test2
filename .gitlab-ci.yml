@@ -31,21 +31,10 @@ build:
 
 deploy:
   stage: deploy
-  only:
+  only: 
     - main
   image: cdrx/rancher-gitlab-deploy
   script:
-    # Se não definir RANCHER_ENV nas variáveis do GitLab, usa 'Default'
     - export R_ENV="${RANCHER_ENV:-Default}"
-
-    # Backend
-    - upgrade --environment "$R_ENV" \
-              --stack Formulario-Banco-Producao \
-              --service formulario-backend \
-              --new-image "$REGISTRY_ADDRESS/formulario-backend:prod"
-
-    # Frontend
-    - upgrade --environment "$R_ENV" \
-              --stack Formulario-Banco-Producao \
-              --service formulario-frontend \
-              --new-image "$REGISTRY_ADDRESS/formulario-frontend:prod"
+    - upgrade --environment "$R_ENV" --stack "Formulario-Banco-Producao" --service "formulario-backend" --new-image "$REGISTRY_ADDRESS/formulario-backend:prod"
+    - upgrade --environment "$R_ENV" --stack "Formulario-Banco-Producao" --service "formulario-frontend" --new-image "$REGISTRY_ADDRESS/formulario-frontend:prod"
