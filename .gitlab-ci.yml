@@ -1,6 +1,6 @@
 variables:
   DOCKER_DRIVER: overlay2
-  AMBIENTE: dev
+  AMBIENTE: prod   # main = produção
 
 stages:
   - build
@@ -12,58 +12,40 @@ build:
     - name: docker:24.0.9-dind
   stage: build
   only:
-    - HML
-    - master
+    - main
   script:
-    # Define AMBIENTE pela branch (igual ao seu exemplo)
-    - >
-      if [ "$CI_COMMIT_REF_NAME" == "master" ]; then
-          export AMBIENTE=prod
-      else
-          export AMBIENTE=hml
-      fi
     # DNS local (igual ao seu exemplo)
     - echo "nameserver 192.168.1.8" | tee /etc/resolv.conf
-    # Login no registry
+    # login no registry
     - docker login "$REGISTRY_ADDRESS" --username "$REGISTRY_USERNAME" --password "$REGISTRY_PASSWORD"
 
-    # Build & Push FRONTEND (raiz do projeto)
-    - docker build --load -t $REGISTRY_ADDRESS/formulario-frontend:$AMBIENTE .
-    - docker push $REGISTRY_ADDRESS/formulario-frontend:$AMBIENTE
+    # FRONTEND (raiz)
+    - docker build --load -t "$REGISTRY_ADDRESS/formulario-frontend:$AMBIENTE" .
 
-    # Build & Push BACKEND (diretório backend/)
-    - docker build --load -t $REGISTRY_ADDRESS/formulario-backend:$AMBIENTE backend
-    - docker push $REGISTRY_ADDRESS/formulario-backend:$AMBIENTE
+    # BACKEND (pasta backend/)
+    - docker build --load -t "$REGISTRY_ADDRESS/formulario-backend:$AMBIENTE" backend
+
+    # push
+    - docker push "$REGISTRY_ADDRESS/formulario-frontend:$AMBIENTE"
+    - docker push "$REGISTRY_ADDRESS/formulario-backend:$AMBIENTE"
 
 deploy:
   stage: deploy
   only:
-    - HML
-    - master
+    - main
   image: cdrx/rancher-gitlab-deploy
   script:
-    - >
-      if [ "$CI_COMMIT_REF_NAME" == "master" ]; then
-        # ===== PROD =====
-        # Stack já criada: Formulario-Banco-Producao
-        # Serviços padrão: formulario-backend / formulario-frontend
-        upgrade --environment Prod \
-                --stack Formulario-Banco-Producao \
-                --service formulario-backend \
-                --new-image $REGISTRY_ADDRESS/formulario-backend:prod
-        upgrade --environment Prod \
-                --stack Formulario-Banco-Producao \
-                --service formulario-frontend \
-                --new-image $REGISTRY_ADDRESS/formulario-frontend:prod
-      else
-        # ===== HML =====
-        # Usa APENAS as 3 variáveis que você criou
-        upgrade --environment Default \
-                --stack $RANCHER_STACK_HML \
-                --service $BACK_SERVICE_HML \
-                --new-image $REGISTRY_ADDRESS/formulario-backend:hml
-        upgrade --environment Default \
-                --stack $RANCHER_STACK_HML \
-                --service $FRONT_SERVICE_HML \
-                --new-image $REGISTRY_ADDRESS/formulario-frontend:hml
-      fi
+    # Se não definir RANCHER_ENV nas variáveis do GitLab, usa 'Default'
+    - export R_ENV="${RANCHER_ENV:-Default}"
+
+    # Backend
+    - upgrade --environment "$R_ENV" \
+              --stack Formulario-Banco-Producao \
+              --service formulario-backend \
+              --new-image "$REGISTRY_ADDRESS/formulario-backend:prod"
+
+    # Frontend
+    - upgrade --environment "$R_ENV" \
+              --stack Formulario-Banco-Producao \
+              --service formulario-frontend \
+              --new-image "$REGISTRY_ADDRESS/formulario-frontend:prod"
