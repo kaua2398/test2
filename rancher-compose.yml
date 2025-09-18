@@ -1,0 +1,23 @@
+version: '2'
+services:
+  frontend:
+    scale: 1
+    health_check:
+      port: 80
+      interval: 10000
+      unhealthy_threshold: 3
+      strategy: recreate
+      response_timeout: 2000
+      healthy_threshold: 2
+
+  backend:
+    scale: 1
+    health_check:
+      port: 3333
+      interval: 15000
+      unhealthy_threshold: 3
+      strategy: recreate
+      response_timeout: 5000
+      healthy_threshold: 2
+      # Adicione uma rota GET / no backend para este health check funcionar
+      request_line: "GET / HTTP/1.1"

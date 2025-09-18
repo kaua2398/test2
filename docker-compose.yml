@@ -1,0 +1,20 @@
+version: '2'
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80" # Expõe o Nginx na porta 80
+    restart: always
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "3333:3333" # Expõe a API na porta 3333
+    restart: always
+    environment:
+      # A URL do webhook será lida pelo seu código
+      WEBHOOK_URL: "https://n8n.valeshop.com.br/webhook/oracle-access/form"
