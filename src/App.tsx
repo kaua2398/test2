@@ -225,16 +225,19 @@ function App() {
                 <div className="flex flex-col lg:flex-row gap-4 items-stretch w-full">
                   <div className="relative flex-1 w-full min-w-0 flex items-stretch">
                     <FileText className="absolute left-3 sm:left-4 top-3 sm:top-4 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-                    <textarea
-                      value={formData.reason}
-                      onChange={(e) => handleInputChange('reason', e.target.value)}
-                      className={`${inputClasses('reason')} w-full min-h-[100px] sm:min-h-[120px] pt-3 sm:pt-4 pb-3 sm:pb-4 text-base sm:text-lg resize-none pl-10 sm:pl-10`}
-                      placeholder="Descreva o motivo da solicitação de acesso"
-                      rows={4}
-                    />
-                    {errors.reason && (
-                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.reason}</p>
-                    )}
+                    <div className="flex flex-col w-full">
+                      <textarea
+                        value={formData.reason}
+                        onChange={(e) => handleInputChange('reason', e.target.value)}
+                        className={`${inputClasses('reason')} w-full min-h-[100px] sm:min-h-[120px] pt-3 sm:pt-4 pb-3 sm:pb-4 text-base sm:text-lg resize-none pl-10 sm:pl-10`}
+                        placeholder="Descreva o motivo da solicitação de acesso"
+                        rows={4}
+                      />
+                      {/* Mensagem de erro abaixo da caixa de texto, alinhada à esquerda */}
+                      {errors.reason && (
+                        <p className="mt-2 text-sm text-red-600 font-medium text-left">{errors.reason}</p>
+                      )}
+                    </div>
                   </div>
                   {/* Botões de escolha da aplicação ao lado, centralizados verticalmente */}
                   <div className="flex flex-col justify-center gap-2 w-[220px] min-w-[180px] max-w-[240px] h-full">
@@ -247,7 +250,13 @@ function App() {
                         { value: 'App Benefícios', label: 'App Benefícios' },
                         { value: 'Frotas', label: 'Frotas' }
                       ].map(app => (
-                        <label key={app.value} className={`flex items-center px-2 py-1.5 rounded-lg border cursor-pointer transition-all duration-150 text-xs sm:text-sm font-medium ${formData.application === app.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300 hover:border-blue-400'}`}>
+                        <label key={app.value} className={`flex items-center px-2 py-1.5 rounded-lg border cursor-pointer transition-all duration-150 text-xs sm:text-sm font-medium
+                          ${formData.application === app.value
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : errors.application
+                              ? 'border-red-500 bg-red-50 text-red-700'
+                              : 'bg-white border-gray-300 hover:border-blue-400'}
+                        `}>
                           <input
                             type="radio"
                             name="application"
