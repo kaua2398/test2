@@ -1,13 +1,12 @@
 package com.valeshop.timesheet.services;
 
-import com.valeshop.timesheet.entities.user.User;
-import com.valeshop.timesheet.entities.user.UserForgotPasswordDTO;
-import com.valeshop.timesheet.entities.user.UserRegisterDTO;
-import com.valeshop.timesheet.entities.user.UserType;
+import com.valeshop.timesheet.entities.user.*;
 import com.valeshop.timesheet.exceptions.UserAlreadyExistsException;
 import com.valeshop.timesheet.exceptions.UserNotFoundException;
 import com.valeshop.timesheet.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -71,7 +70,7 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("Utilizador não encontrado com o e-mail: " + dataUser.email()));
 
         user.setPasswordResetToken(UUID.randomUUID().toString());
-        user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(1));
+        user.setPasswordResetTokenExpiry(LocalDateTime.now().plusMinutes(20));
         userRepository.save(user);
 
         emailService.sendPasswordResetEmail(user.getEmail(), user.getPasswordResetToken());
@@ -82,7 +81,7 @@ public class UserService {
                 .orElse(null);
 
         if (user == null || user.getPasswordResetTokenExpiry().isBefore(LocalDateTime.now())) {
-            return false; // Token inválido ou expirado
+            return false;
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -91,6 +90,13 @@ public class UserService {
         userRepository.save(user);
 
         return true;
+    }
+
+    public UserResponseDTO getAuthenticatedUserProfile() {
+        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new UserNotFoundException("Utilizador não encontrado no contexto de segurança."));
+        return new UserResponseDTO(user);
     }
 }
 

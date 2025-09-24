@@ -1,5 +1,7 @@
 package com.valeshop.timesheet.infra.security;
 
+import com.valeshop.timesheet.exceptions.InvalidTokenException;
+import com.valeshop.timesheet.exceptions.UserNotFoundException;
 import com.valeshop.timesheet.services.AuthorizationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -9,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -26,34 +27,25 @@ public class SecurityFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        System.out.println("--- SecurityFilter INICIO ---");
-        System.out.println("Request URI: " + request.getRequestURI());
 
         try {
             String token = this.recoverToken(request);
-            System.out.println("Token Recuperado: " + token);
 
             if (token != null) {
                 String login = tokenService.validateToken(token);
                 if (login != null && !login.isEmpty()) {
                     UserDetails user = this.authorizationService.loadUserByUsername(login);
 
-                    // --- LOG DE DIAGNÓSTICO CRÍTICO ---
-                    System.out.println("Utilizador encontrado no filtro: " + user.getUsername());
-                    System.out.println("Permissões (Roles) carregadas: " + user.getAuthorities());
-                    // ------------------------------------
-
                     var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
-        } catch (UsernameNotFoundException e) {
-            System.out.println("Token válido, mas o utilizador não foi encontrado na base de dados: " + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("Erro ao processar o token: " + e.getMessage());
+        } catch (UserNotFoundException e) {
+            throw new  UserNotFoundException();
+        } catch (InvalidTokenException e) {
+            throw new InvalidTokenException();
         }
 
-        System.out.println("--- SecurityFilter FIM, passando para o próximo filtro ---");
         filterChain.doFilter(request, response);
     }
 

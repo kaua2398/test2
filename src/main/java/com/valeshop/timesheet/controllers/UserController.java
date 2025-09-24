@@ -2,6 +2,7 @@ package com.valeshop.timesheet.controllers;
 
 import com.valeshop.timesheet.entities.user.*;
 import com.valeshop.timesheet.exceptions.InvalidPasswordException;
+import com.valeshop.timesheet.exceptions.UserNotFoundException;
 import com.valeshop.timesheet.infra.RestResponseMessage;
 import com.valeshop.timesheet.infra.security.TokenService;
 import com.valeshop.timesheet.schemas.PasswordResetRequestSchema;
@@ -18,6 +19,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -65,7 +67,7 @@ public class UserController {
         }
     }
 
-    @PostMapping(value = "/login")
+    @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AutenticationDTO data) {
         try {
             UsernamePasswordAuthenticationToken usernamePassword = new UsernamePasswordAuthenticationToken(data.email(), data.password());
@@ -98,5 +100,11 @@ public class UserController {
             RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.BAD_REQUEST, "Token de redefinição inválido ou expirado.", 400);
             return ResponseEntity.badRequest().body(responseMessage);
         }
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<UserResponseDTO> getAuthenticatedUserProfile() {
+        UserResponseDTO userResponse = userService.getAuthenticatedUserProfile();
+        return ResponseEntity.ok(userResponse);
     }
 }
