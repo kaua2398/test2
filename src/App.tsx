@@ -6,6 +6,7 @@ interface FormData {
   requester_email: string;
   reason: string;
   duration_hours: string;
+  application: string; // Novo campo para aplicação
 }
 
 interface FormStatus {
@@ -18,7 +19,8 @@ function App() {
     requester_name: '',
     requester_email: '',
     reason: '',
-    duration_hours: ''
+    duration_hours: '',
+    application: '' // Inicializa vazio
   });
 
   const [errors, setErrors] = useState<Partial<FormData>>({});
@@ -50,6 +52,10 @@ function App() {
       newErrors.duration_hours = 'Duração é obrigatória';
     } else if (isNaN(Number(formData.duration_hours)) || Number(formData.duration_hours) <= 0) {
       newErrors.duration_hours = 'Duração deve ser um número maior que 0';
+    }
+
+    if (!formData.application) {
+      newErrors.application = 'Selecione a aplicação';
     }
 
     setErrors(newErrors);
@@ -93,7 +99,8 @@ function App() {
           requester_name: '',
           requester_email: '',
           reason: '',
-          duration_hours: ''
+          duration_hours: '',
+          application: '' // Limpa também o campo da aplicação
         });
       } else {
         const errorText = await response.text();
@@ -210,26 +217,55 @@ function App() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-              {/* Descrição/Motivo */}
+              {/* Descrição/Motivo + Aplicação lado a lado */}
               <div className="lg:col-span-2">
                 <label className="block text-sm sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
-                Descrição/Motivo *
+                  Descrição/Motivo *
                 </label>
-                <div className="relative">
-                  <FileText className="absolute left-3 sm:left-4 top-3 sm:top-4 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-                <textarea
-                  value={formData.reason}
-                  onChange={(e) => handleInputChange('reason', e.target.value)}
-                    className={`${inputClasses('reason')} min-h-[100px] sm:min-h-[120px] pt-3 sm:pt-4 pb-3 sm:pb-4 text-base sm:text-lg resize-none pl-10 sm:pl-10`}
-                  placeholder="Descreva o motivo da solicitação de acesso"
-                    rows={4}
-                />
+                <div className="flex flex-col lg:flex-row gap-4 items-stretch w-full">
+                  <div className="relative flex-1 w-full min-w-0 flex items-stretch">
+                    <FileText className="absolute left-3 sm:left-4 top-3 sm:top-4 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+                    <textarea
+                      value={formData.reason}
+                      onChange={(e) => handleInputChange('reason', e.target.value)}
+                      className={`${inputClasses('reason')} w-full min-h-[100px] sm:min-h-[120px] pt-3 sm:pt-4 pb-3 sm:pb-4 text-base sm:text-lg resize-none pl-10 sm:pl-10`}
+                      placeholder="Descreva o motivo da solicitação de acesso"
+                      rows={4}
+                    />
+                    {errors.reason && (
+                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.reason}</p>
+                    )}
+                  </div>
+                  {/* Botões de escolha da aplicação ao lado, centralizados verticalmente */}
+                  <div className="flex flex-col justify-center gap-2 w-[220px] min-w-[180px] max-w-[240px] h-full">
+                    <span className="block text-sm font-semibold text-gray-700 mb-1">Aplicação *</span>
+                    <div className="flex flex-col gap-2">
+                      {[
+                        { value: 'VSLBank', label: 'VSLBank' },
+                        { value: 'Portal ValeShop', label: 'Portal ValeShop' },
+                        { value: 'Sistema Interno/Forms', label: 'Sistema Interno/Forms' },
+                        { value: 'App Benefícios', label: 'App Benefícios' },
+                        { value: 'Frotas', label: 'Frotas' }
+                      ].map(app => (
+                        <label key={app.value} className={`flex items-center px-2 py-1.5 rounded-lg border cursor-pointer transition-all duration-150 text-xs sm:text-sm font-medium ${formData.application === app.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300 hover:border-blue-400'}`}>
+                          <input
+                            type="radio"
+                            name="application"
+                            value={app.value}
+                            checked={formData.application === app.value}
+                            onChange={() => handleInputChange('application', app.value)}
+                            className="mr-1 accent-blue-600"
+                          />
+                          {app.label}
+                        </label>
+                      ))}
+                    </div>
+                    {errors.application && (
+                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.application}</p>
+                    )}
+                  </div>
                 </div>
-                {errors.reason && (
-                  <p className="mt-2 text-sm text-red-600 font-medium">{errors.reason}</p>
-                )}
               </div>
-
               {/* Duração */}
               <div>
                 <label className="block text-sm sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
@@ -296,7 +332,7 @@ function App() {
         {/* Additional Info */}
         <div className="mt-6 sm:mt-8 text-center">
           <p className="text-xs sm:text-sm text-gray-600">
-            Em caso de dúvidas, entre em contato com a equipe de TI
+            Em caso de dúvidas, entre em contato.
           </p>
         </div>
       </div>
