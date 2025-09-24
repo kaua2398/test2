@@ -1,7 +1,6 @@
 package com.valeshop.timesheet.infra.security;
 
-import com.valeshop.timesheet.exceptions.UserNotFoundException;
-import com.valeshop.timesheet.repositories.UserRepository;
+import com.valeshop.timesheet.services.AuthorizationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -19,31 +19,43 @@ import java.io.IOException;
 public class SecurityFilter extends OncePerRequestFilter {
 
     @Autowired
-    TokenService tokenService;
+    private TokenService tokenService;
 
     @Autowired
-    UserRepository usersRepository;
+    private AuthorizationService authorizationService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        System.out.println("--- SecurityFilter INICIO ---");
+        System.out.println("Request URI: " + request.getRequestURI());
+
         try {
             String token = this.recoverToken(request);
+            System.out.println("Token Recuperado: " + token);
+
             if (token != null) {
                 String login = tokenService.validateToken(token);
-                UserDetails user = usersRepository.findByEmail(login).orElseThrow(() -> new UserNotFoundException("Usuário não encontrado"));
+                if (login != null && !login.isEmpty()) {
+                    UserDetails user = this.authorizationService.loadUserByUsername(login);
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    // --- LOG DE DIAGNÓSTICO CRÍTICO ---
+                    System.out.println("Utilizador encontrado no filtro: " + user.getUsername());
+                    System.out.println("Permissões (Roles) carregadas: " + user.getAuthorities());
+                    // ------------------------------------
+
+                    var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
-            filterChain.doFilter(request, response);
-        } catch (UserNotFoundException ex) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write("{\"error\": \"Login não encontrado\"}");
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
+        } catch (UsernameNotFoundException e) {
+            System.out.println("Token válido, mas o utilizador não foi encontrado na base de dados: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Erro ao processar o token: " + e.getMessage());
         }
-    }
 
+        System.out.println("--- SecurityFilter FIM, passando para o próximo filtro ---");
+        filterChain.doFilter(request, response);
+    }
 
     private String recoverToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
@@ -51,3 +63,4 @@ public class SecurityFilter extends OncePerRequestFilter {
         return authHeader.replace("Bearer ", "");
     }
 }
+

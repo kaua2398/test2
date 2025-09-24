@@ -5,6 +5,8 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.valeshop.timesheet.entities.user.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,8 @@ import java.time.ZoneOffset;
 
 @Service
 public class TokenService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TokenService.class);
 
     @Value("${api.security.token.secret}")
     private String secret;
@@ -26,11 +30,11 @@ public class TokenService {
                     .withSubject(user.getEmail())
                     .withExpiresAt(generateExpirationTime())
                     .sign(algorithm);
-
+            logger.info("Token gerado com sucesso para o utilizador: {}", user.getEmail());
             return token;
         } catch (JWTCreationException exception) {
-            throw new RuntimeException("Error while generating token", exception);
-
+            logger.error("Erro ao gerar o token JWT", exception);
+            throw new RuntimeException("Erro ao gerar o token", exception);
         }
     }
 
@@ -43,7 +47,8 @@ public class TokenService {
                     .verify(token)
                     .getSubject();
         } catch (JWTVerificationException exception) {
-            return "";
+            logger.warn("A validação do token JWT falhou: {}", exception.getMessage());
+            return null; // Retorna nulo para indicar claramente a falha
         }
     }
 

@@ -11,6 +11,7 @@ import lombok.Setter;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "demands")
@@ -25,20 +26,23 @@ public class DemandRecord implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    protected long id;
+    protected Long id;
     protected String title;
     protected String gitLink;
     protected Integer priority;
     protected String status;
     protected Date date;
     protected String description;
+    protected List<String> problems;
+    protected List<String> observations;
+    protected List<String> comments;
 
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "id_user")
-    private User user; // a relação dependente leva a coluna no construtor
+    private User user;
 
-    public DemandRecord(long id, String title, String gitLink, Integer priority, String status, Date date, String description, User user) {
+    public DemandRecord(Long id, String title, String gitLink, Integer priority, String status, Date date, String description, User user) {
         this.id = id;
         this.title = title;
         this.gitLink = gitLink;
@@ -48,4 +52,5 @@ public class DemandRecord implements Serializable {
         this.description = description;
         this.user = user;
     }
+
 }
