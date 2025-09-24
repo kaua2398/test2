@@ -54,12 +54,14 @@ public class UserController {
     }
 
     @GetMapping("/verify-email")
-    public ResponseEntity<String> verifyEmail(@RequestParam("token") String token) {
+    public ResponseEntity<RestResponseMessage> verifyEmail(@RequestParam("token") String token) {
         boolean isVerified = userService.verifyUser(token);
         if (isVerified) {
-            return ResponseEntity.ok("E-mail verificado com sucesso! Já pode fazer login.");
+            RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.OK,"E-mail verificado com sucesso! Já pode fazer login.",200 );
+            return ResponseEntity.ok().body(responseMessage);
         } else {
-            return ResponseEntity.badRequest().body("Token de verificação inválido ou expirado.");
+            RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.BAD_REQUEST,"Token de verificação inválido ou expirado.",400 );
+            return ResponseEntity.badRequest().body(responseMessage);
         }
     }
 
