@@ -6,7 +6,7 @@ interface FormData {
   requester_email: string;
   reason: string;
   duration_hours: string;
-  application: string; // Novo campo para aplicação
+  application: string;
 }
 
 interface FormStatus {
@@ -20,7 +20,7 @@ function App() {
     requester_email: '',
     reason: '',
     duration_hours: '',
-    application: '' // Inicializa vazio
+    application: ''
   });
 
   const [errors, setErrors] = useState<Partial<FormData>>({});
@@ -65,7 +65,6 @@ function App() {
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
@@ -100,7 +99,7 @@ function App() {
           requester_email: '',
           reason: '',
           duration_hours: '',
-          application: '' // Limpa também o campo da aplicação
+          application: ''
         });
       } else {
         const errorText = await response.text();
@@ -155,7 +154,6 @@ function App() {
           </div>
           
           <div className="p-4 sm:p-8">
-          {/* Header */}
 
           {/* Status Messages */}
           {status.type === 'success' && (
@@ -216,67 +214,65 @@ function App() {
               </div>
             </div>
 
+            {/* CORREÇÃO: Nova estrutura de grid para alinhar os campos */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-              {/* Descrição/Motivo + Aplicação lado a lado */}
-              <div className="lg:col-span-2">
+              {/* Coluna 1: Descrição/Motivo */}
+              <div className="lg:col-span-1">
                 <label className="block text-sm sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
                   Descrição/Motivo *
                 </label>
-                <div className="flex flex-col lg:flex-row gap-4 items-stretch w-full">
-                  <div className="relative flex-1 w-full min-w-0 flex items-stretch">
+                <div className="relative">
                     <FileText className="absolute left-3 sm:left-4 top-3 sm:top-4 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
-                    <div className="flex flex-col w-full">
-                      <textarea
-                        value={formData.reason}
-                        onChange={(e) => handleInputChange('reason', e.target.value)}
-                        className={`${inputClasses('reason')} w-full min-h-[100px] sm:min-h-[120px] pt-3 sm:pt-4 pb-3 sm:pb-4 text-base sm:text-lg resize-none pl-10 sm:pl-10`}
-                        placeholder="Descreva o motivo da solicitação de acesso"
-                        rows={4}
-                      />
-                      {/* Mensagem de erro abaixo da caixa de texto, alinhada à esquerda */}
-                      {errors.reason && (
-                        <p className="mt-2 text-sm text-red-600 font-medium text-left">{errors.reason}</p>
-                      )}
-                    </div>
-                  </div>
-                  {/* Botões de escolha da aplicação ao lado, centralizados verticalmente */}
-                  <div className="flex flex-col justify-center gap-2 w-[220px] min-w-[180px] max-w-[240px] h-full">
-                    <span className="block text-sm font-semibold text-gray-700 mb-1">Aplicação *</span>
-                    <div className="flex flex-col gap-2">
-                      {[
-                        { value: 'VSLBank', label: 'VSLBank' },
-                        { value: 'Portal ValeShop', label: 'Portal ValeShop' },
-                        { value: 'Sistema Interno/Forms', label: 'Sistema Interno/Forms' },
-                        { value: 'App Benefícios', label: 'App Benefícios' },
-                        { value: 'Frotas', label: 'Frotas' }
-                      ].map(app => (
-                        <label key={app.value} className={`flex items-center px-2 py-1.5 rounded-lg border cursor-pointer transition-all duration-150 text-xs sm:text-sm font-medium
-                          ${formData.application === app.value
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : errors.application
-                              ? 'border-red-500 bg-red-50 text-red-700'
-                              : 'bg-white border-gray-300 hover:border-blue-400'}
-                        `}>
-                          <input
-                            type="radio"
-                            name="application"
-                            value={app.value}
-                            checked={formData.application === app.value}
-                            onChange={() => handleInputChange('application', app.value)}
-                            className="mr-1 accent-blue-600"
-                          />
-                          {app.label}
-                        </label>
-                      ))}
-                    </div>
-                    {errors.application && (
-                      <p className="mt-2 text-sm text-red-600 font-medium">{errors.application}</p>
-                    )}
-                  </div>
+                    <textarea
+                      value={formData.reason}
+                      onChange={(e) => handleInputChange('reason', e.target.value)}
+                      className={`${inputClasses('reason')} w-full min-h-[180px] sm:min-h-[200px] pt-3 sm:pt-4 pb-3 sm:pb-4 text-base sm:text-lg resize-none pl-10 sm:pl-10`}
+                      placeholder="Descreva o motivo da solicitação de acesso"
+                      rows={8}
+                    />
                 </div>
+                {errors.reason && (
+                  <p className="mt-2 text-sm text-red-600 font-medium">{errors.reason}</p>
+                )}
               </div>
-              {/* Duração */}
-              <div>
+              
+              {/* Coluna 2: Aplicação */}
+              <div className="lg:col-span-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Aplicação *</label>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { value: 'VSLBank', label: 'VSLBank' },
+                    { value: 'Portal ValeShop', label: 'Portal ValeShop' },
+                    { value: 'Sistema Interno/Forms', label: 'Sistema Interno/Forms' },
+                    { value: 'App Benefícios', label: 'App Benefícios' },
+                    { value: 'Frotas', label: 'Frotas' }
+                  ].map(app => (
+                    <label key={app.value} className={`flex items-center px-3 py-2.5 rounded-lg border cursor-pointer transition-all duration-150 text-sm sm:text-base font-medium
+                      ${formData.application === app.value
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                        : errors.application
+                          ? 'border-red-500 bg-red-50 text-red-700'
+                          : 'bg-white border-gray-300 hover:border-blue-400'}
+                    `}>
+                      <input
+                        type="radio"
+                        name="application"
+                        value={app.value}
+                        checked={formData.application === app.value}
+                        onChange={() => handleInputChange('application', app.value)}
+                        className="mr-2 accent-blue-600"
+                      />
+                      {app.label}
+                    </label>
+                  ))}
+                </div>
+                {errors.application && (
+                  <p className="mt-2 text-sm text-red-600 font-medium">{errors.application}</p>
+                )}
+              </div>
+              
+              {/* Coluna 3: Duração */}
+              <div className="lg:col-span-1">
                 <label className="block text-sm sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
                 Duração (horas) *
                 </label>
