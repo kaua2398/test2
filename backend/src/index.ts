@@ -11,10 +11,11 @@ app.use(express.json());
 
 // Endpoint para receber o formulário
 app.post('/api/solicitacao', async (req, res) => {
-  const { requester_name, requester_email, reason, duration_hours } = req.body;
+  // CORREÇÃO: Adicionado o campo "application" na desestruturação
+  const { requester_name, requester_email, reason, duration_hours, application } = req.body;
 
-  // Validação básica
-  if (!requester_name || !requester_email || !reason || !duration_hours) {
+  // CORREÇÃO: Adicionado "application" na validação
+  if (!requester_name || !requester_email || !reason || !duration_hours || !application) {
     return res.status(400).json({ error: 'Campos obrigatórios faltando.' });
   }
 
@@ -24,7 +25,8 @@ app.post('/api/solicitacao', async (req, res) => {
       requester_name,
       requester_email,
       reason,
-      duration_hours
+      duration_hours,
+      application // CORREÇÃO: Adicionado "application" para ser enviado ao webhook
     }, {
       headers: {
         'Content-Type': 'application/json',
