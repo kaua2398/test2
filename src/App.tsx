@@ -245,7 +245,9 @@ function App() {
                             { value: 'Portal ValeShop', label: 'Portal ValeShop' },
                             { value: 'Sistema Interno/Forms', label: 'Sistema Interno/Forms' },
                             { value: 'App Benefícios', label: 'App Benefícios' },
-                            { value: 'Frotas', label: 'Frotas' }
+                            { value: 'Frotas', label: 'Frotas' },
+                            { value: 'Sankya', label: 'Sankya' },
+                            { value: 'Autorizador', label: 'Autorizador' }
                           ].map(app => (
                             <label key={app.value} className={`flex items-center px-3 py-1.5 rounded-md border cursor-pointer transition-all duration-150 text-sm font-medium
                               ${formData.application === app.value ? 'bg-blue-600 text-white border-blue-600' : errors.application ? 'border-red-500 bg-red-50 text-red-700' : 'bg-white border-gray-300 hover:border-blue-400'}
@@ -341,4 +343,3 @@ function App() {
 }
 
 export default App;
-
