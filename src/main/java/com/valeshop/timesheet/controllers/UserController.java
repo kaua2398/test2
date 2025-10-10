@@ -7,6 +7,7 @@ import com.valeshop.timesheet.infra.RestResponseMessage;
 import com.valeshop.timesheet.infra.security.TokenService;
 import com.valeshop.timesheet.schemas.PasswordResetRequestSchema;
 import com.valeshop.timesheet.schemas.PasswordResetSchema;
+import com.valeshop.timesheet.schemas.ResendVerificationSchema;
 import com.valeshop.timesheet.schemas.UserSchema;
 import com.valeshop.timesheet.services.UserService;
 import jakarta.validation.Valid;
@@ -22,6 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -39,32 +41,32 @@ public class UserController {
     @Autowired
     private TokenService tokenService;
 
-    @AllArgsConstructor
-    @Getter
-    private static class UserRegisterResponse {
-        private User user;
-        private String message;
-
-    }
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody UserSchema userSchema) {
         UserRegisterDTO userRegisterDTO = new UserRegisterDTO(userSchema.getEmail(), userSchema.getPassword(), userSchema.getUserType());
         User user = userService.registerUser(userRegisterDTO);
-        UserRegisterResponse userRegisterResponse = new UserRegisterResponse(user, "Conta criada com sucesso, por favor verifique seu email!");
-        return ResponseEntity.status(HttpStatus.CREATED).body(userRegisterResponse);
+        RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.CREATED, "Conta criada com sucesso, por favor verifique seu email!", 201);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseMessage);
     }
 
     @GetMapping("/verify-email")
     public ResponseEntity<RestResponseMessage> verifyEmail(@RequestParam("token") String token) {
         boolean isVerified = userService.verifyUser(token);
         if (isVerified) {
-            RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.OK,"E-mail verificado com sucesso! Já pode fazer login.",200 );
+            RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.OK, "E-mail verificado com sucesso! Já pode fazer login.", 200);
             return ResponseEntity.ok().body(responseMessage);
         } else {
-            RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.BAD_REQUEST,"Token de verificação inválido ou expirado.",400 );
+            RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.BAD_REQUEST, "Token de verificação inválido ou expirado.", 400);
             return ResponseEntity.badRequest().body(responseMessage);
         }
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<RestResponseMessage> resendVerificationEmail(@Valid @RequestBody ResendVerificationSchema schema) {
+        userService.resendVerificationEmail(schema.getEmail());
+        RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.OK, "Um novo link de verificação foi enviado com sucesso!", 200);
+        return ResponseEntity.ok().body(responseMessage);
     }
 
     @PostMapping("/login")
@@ -106,5 +108,11 @@ public class UserController {
     public ResponseEntity<UserResponseDTO> getAuthenticatedUserProfile() {
         UserResponseDTO userResponse = userService.getAuthenticatedUserProfile();
         return ResponseEntity.ok(userResponse);
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<User>> getAllUsers() {
+        List<User> users = userService.getAllUsers();
+        return ResponseEntity.ok().body(users);
     }
 }

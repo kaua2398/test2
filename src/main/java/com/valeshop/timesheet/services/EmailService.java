@@ -1,9 +1,11 @@
 package com.valeshop.timesheet.services;
 
-import com.valeshop.timesheet.exceptions.CannotSendEmailCorrectlyException;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -11,41 +13,59 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     @Autowired
-    private JavaMailSender emailSender;
+    private JavaMailSender mailSender;
 
-    @Async // Para não bloquear a thread principal durante o envio de e-mail
-    public void sendVerificationEmail(String to, String token) {
-        String subject = "Validação de E-mail - Timesheet API";
-        // ATENÇÃO: Num projeto real, a URL base deve vir de um ficheiro de configuração.
-        String verificationUrl = "http://localhost:8080/users/verify-email?token=" + token;
-        String text = "Bem-vindo à Timesheet API! Por favor, clique no link abaixo para validar o seu e-mail:\n" + verificationUrl;
+    @Value("${spring.mail.username}")
+    private String fromEmail;
 
-        sendEmail(to, subject, text);
-    }
+    @Value("${frontend.url}")
+    private String frontendUrl;
 
     @Async
-    public void sendPasswordResetEmail(String to, String token) {
-        String subject = "Redefinição de Senha - Timesheet API";
-        // ATENÇÃO: Esta URL deve apontar para a sua PÁGINA DE FRONTEND, não para a API.
-        // O frontend irá receber o token e depois fazer a chamada à API.
-        String resetUrl = "http://localhost:8080/users/reset-password?token=" + token;
-        String text = "Você solicitou uma redefinição de senha. Clique no link abaixo para criar uma nova senha:\n" + resetUrl;
-
-        sendEmail(to, subject, text);
-    }
-
-    private void sendEmail(String to, String subject, String text) {
+    private void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(text);
-            message.setFrom("no-reply@timesheetapi.com"); // Pode ser o seu e-mail de envio
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
 
-            emailSender.send(message);
-        } catch (Exception e) {
-            System.err.println("Erro ao enviar e-mail para " + to + ": " + e.getMessage());
-            throw new CannotSendEmailCorrectlyException();
+            helper.setFrom(fromEmail);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true);
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            // Numa aplicação real, você deveria adicionar um log de erro aqui
+            // logger.error("Falha ao enviar e-mail HTML para {}", to, e);
+            throw new IllegalStateException("Falha ao enviar e-mail.", e);
         }
     }
+
+
+    public void sendVerificationEmail(String to, String token) {
+        String subject = "Validação de E-mail";
+        String verificationUrl = frontendUrl + "/verify-email?token=" + token;
+        String resendUrl = frontendUrl + "/resend-verification";
+
+        String htmlBody = "<h1>Bem-vindo ao Controle de Tarefas ValeShop!</h1>"
+                + "<p>Por favor, clique no botão abaixo para validar o seu e-mail:</p>"
+                + "<a href=\"" + verificationUrl + "\" style=\"background-color:#007bff;color:#ffffff;padding:10px 15px;text-decoration:none;border-radius:5px;\">Validar Meu E-mail</a>"
+                + "<br><br>"
+                + "<p>O seu token expirou? Clique <a href=\"" + resendUrl + "\">aqui</a> para solicitar um novo.</p>";
+
+        sendHtmlEmail(to, subject, htmlBody);
+    }
+
+    public void sendPasswordResetEmail(String to, String token) {
+        String subject = "Redefinição de Senha";
+        String resetUrl = frontendUrl + "/reset-password?token=" + token;
+
+        String htmlBody = "<h1>Redefinição de Senha</h1>"
+                + "<p>Você solicitou a redefinição da sua senha. Clique no botão abaixo para criar uma nova senha:</p>"
+                + "<a href=\"" + resetUrl + "\" style=\"background-color:#28a745;color:#ffffff;padding:10px 15px;text-decoration:none;border-radius:5px;\">Redefinir Senha</a>"
+                + "<br><br>"
+                + "<p>Se você não solicitou esta alteração, pode ignorar este e-mail.</p>";
+
+        sendHtmlEmail(to, subject, htmlBody);
+    }
 }
+

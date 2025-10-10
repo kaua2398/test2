@@ -7,6 +7,7 @@ import com.valeshop.timesheet.exceptions.UserNotFoundException;
 import com.valeshop.timesheet.repositories.UserRepository;
 import com.valeshop.timesheet.schemas.DemandSchema;
 import com.valeshop.timesheet.schemas.DemandRegisterSchema;
+import com.valeshop.timesheet.schemas.DemandUpdateSchema;
 import com.valeshop.timesheet.services.DemandService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -47,6 +48,19 @@ public class DemandController {
 
     }
 
+    @PatchMapping("/update/{demandId}")
+    @Transactional
+    public ResponseEntity<DemandRecord> updateDemand(@RequestBody DemandUpdateSchema demandSchema, @PathVariable Long demandId) {
+        String subject = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(subject)
+                .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado no contexto de segurança."));
+        DemandRecord demandRecordsSaved = demandService.demandUpdate(demandSchema, demandId, currentUser);
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(demandRecordsSaved);
+
+    }
+
+
     @PatchMapping(value = "/register/{demandId}")
     @Transactional
     public ResponseEntity<DemandRecord> registerProblemObservationOrComment(@RequestBody DemandRegisterSchema registerSchema, @PathVariable Long demandId ) {
@@ -74,6 +88,12 @@ public class DemandController {
         String subject = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(subject).orElseThrow(UserNotFoundException::new);
         List<DemandRecord> demands = demandService.getUserAllDemandRecord(user.getId());
+        return ResponseEntity.ok().body(demands);
+    }
+
+    @GetMapping("/{demandId}")
+    public ResponseEntity<DemandRecord> getDemandById(@PathVariable Long demandId){
+        DemandRecord demands = demandService.findDemandById(demandId);
         return ResponseEntity.ok().body(demands);
     }
 

@@ -5,12 +5,12 @@ import com.valeshop.timesheet.exceptions.UserAlreadyExistsException;
 import com.valeshop.timesheet.exceptions.UserNotFoundException;
 import com.valeshop.timesheet.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -39,7 +39,6 @@ public class UserService {
             newUser = new User(null, dataUser.email(), encryptedPassword, UserType.Normal);
         }
 
-        // Gera e define o token de verificação
         String token = UUID.randomUUID().toString();
         newUser.setVerificationToken(token);
 
@@ -55,11 +54,11 @@ public class UserService {
                 .orElse(null);
 
         if (user == null || user.isEnabled()) {
-            return false; // Utilizador não encontrado ou já verificado
+            return false;
         }
 
         user.setEnabled(true);
-        user.setVerificationToken(null); // Limpa o token após a verificação
+        user.setVerificationToken(null);
         userRepository.save(user);
 
         return true;
@@ -67,7 +66,7 @@ public class UserService {
 
     public void requestPasswordReset(UserForgotPasswordDTO dataUser) {
         User user = userRepository.findByEmail(dataUser.email())
-                .orElseThrow(() -> new UserNotFoundException("Utilizador não encontrado com o e-mail: " + dataUser.email()));
+                .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado com o e-mail: " + dataUser.email()));
 
         user.setPasswordResetToken(UUID.randomUUID().toString());
         user.setPasswordResetTokenExpiry(LocalDateTime.now().plusMinutes(20));
@@ -95,8 +94,26 @@ public class UserService {
     public UserResponseDTO getAuthenticatedUserProfile() {
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UserNotFoundException("Utilizador não encontrado no contexto de segurança."));
+                .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado no contexto de segurança."));
         return new UserResponseDTO(user);
+    }
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public void resendVerificationEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado com o e-mail: " + email));
+
+        if (user.isEnabled()) {
+            throw new IllegalStateException();
+        }
+
+        user.setVerificationToken(UUID.randomUUID().toString());
+        user.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(20));
+        userRepository.save(user);
+
+        emailService.sendVerificationEmail(user.getEmail(), user.getVerificationToken());
     }
 }
 

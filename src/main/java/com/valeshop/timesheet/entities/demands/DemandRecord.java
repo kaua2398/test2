@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -27,6 +28,7 @@ public class DemandRecord implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     protected Long id;
+    protected String owner;
     protected String title;
     protected String gitLink;
     protected Integer priority;
@@ -36,14 +38,21 @@ public class DemandRecord implements Serializable {
     protected List<String> problems;
     protected List<String> observations;
     protected List<String> comments;
+    @CreationTimestamp
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "created_at", updatable = false)
+    private Date createdAt;
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date completionDate;
 
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "id_user")
     private User user;
 
-    public DemandRecord(Long id, String title, String gitLink, Integer priority, String status, Date date, String description, User user) {
+    public DemandRecord(Long id, String owner ,String title, String gitLink, Integer priority, String status, Date date, String description, User user) {
         this.id = id;
+        this.owner = owner;
         this.title = title;
         this.gitLink = gitLink;
         this.priority = priority;

@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -39,7 +41,7 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(InvalidPasswordException.class)
-    private ResponseEntity<RestResponseMessage> handleDataIntegrityViolation(InvalidPasswordException exception) {
+    private ResponseEntity<RestResponseMessage> handleInvalidPassword(InvalidPasswordException exception) {
         String message = "Email ou senha incorreto";
         RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.CONFLICT, message, 409);
         return ResponseEntity.status(HttpStatus.CONFLICT).body(responseMessage);
@@ -48,6 +50,12 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     private ResponseEntity<RestResponseMessage> handleDataIntegrityViolation(DataIntegrityViolationException exception) {
         String message = "O email fornecido já está em uso.";
+        RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.CONFLICT, message, 409);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(responseMessage);
+    }
+    @ExceptionHandler(IllegalStateException.class)
+    private ResponseEntity<RestResponseMessage> handleIllegalStateException(IllegalStateException exception) {
+        String message = "Esta conta já foi verificada.";
         RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.CONFLICT, message, 409);
         return ResponseEntity.status(HttpStatus.CONFLICT).body(responseMessage);
     }
@@ -71,6 +79,19 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(responseMessage);
     }
 
+    @ExceptionHandler(DisabledException.class)
+    private ResponseEntity<RestResponseMessage> disabledExceptionHandler(DisabledException exception) {
+        RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.BAD_REQUEST, exception.getMessage(), 400);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMessage);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    private ResponseEntity<RestResponseMessage> handleAccessDenied(AccessDeniedException exception) {
+        RestResponseMessage responseMessage = new RestResponseMessage(HttpStatus.FORBIDDEN, exception.getMessage(), 403);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(responseMessage);
+    }
+
+
     @Override
     protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         String message = "Corpo da requisição ausente ou mal formatado.";
@@ -89,4 +110,3 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
 }
-
