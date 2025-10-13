@@ -1,5 +1,6 @@
 variables:
   DOCKER_DRIVER: overlay2
+  # O nome da imagem que será criada. Deve ser o mesmo usado no Rancher.
   IMAGE_NAME: timesheet-api
 
 stages:
@@ -12,14 +13,11 @@ build:
   services:
     - name: docker:24.0.9-dind
   only:
-    - main 
+    - main
   script:
     - echo "nameserver 192.168.1.8" | tee /etc/resolv.conf
-    
     - docker login "$REGISTRY_ADDRESS" --username "$REGISTRY_USERNAME" --password "$REGISTRY_PASSWORD"
-    
     - docker build -t "$REGISTRY_ADDRESS/$IMAGE_NAME:latest" .
-    
     - docker push "$REGISTRY_ADDRESS/$IMAGE_NAME:latest"
 
 deploy:
