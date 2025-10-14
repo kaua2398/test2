@@ -26,3 +26,4 @@ deploy:
   image: cdrx/rancher-gitlab-deploy
   script:
     - upgrade --environment "Default" --stack "Controle-Demandas" --service "timesheet-api" --new-image "$REGISTRY_ADDRESS/$IMAGE_NAME:latest"
+
