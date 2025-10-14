@@ -21,9 +21,8 @@ build:
 
 deploy:
   stage: deploy
-  only: 
-    - main
-  image: cdrx/rancher-gitlab-deploy
+  image: rancher/cli:v0.6.14
   script:
-    - upgrade --environment "Default" --stack "Controle-Demandas" --service "timesheet-api" --new-image "$REGISTRY_ADDRESS/$IMAGE_NAME:latest"
+    - rancher --url "$RANCHER_URL" --access-key "$RANCHER_ACCESS_KEY" --secret-key "$RANCHER_SECRET_KEY" \
+      up -d --stack Controle-Demandas --file docker-compose.yml --confirm-upgrade --force-upgrade
 
