@@ -42,7 +42,6 @@ build:
 
     # 📤 Push da imagem para o registry
     - docker push "$REGISTRY_ADDRESS/$IMAGE_NAME:latest"
-
 deploy:
   stage: deploy
   only: 
