@@ -8,7 +8,7 @@ COPY mvnw pom.xml ./
 RUN chmod +x ./mvnw
 RUN ./mvnw dependency:go-offline
 
-# Copia o código-fonte
+
 COPY src ./src
 
 # Compila o projeto sem rodar testes
