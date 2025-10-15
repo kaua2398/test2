@@ -20,15 +20,15 @@ build:
     - echo "Gerando .env com variáveis do ambiente..."
     - |
       cat <<EOF > .env
-      DB_URL=${DB_URL}
-      DB_USER=${DB_USER}
-      DB_PASSWORD=${DB_PASSWORD}
+      DB_URL=${URL_BANCO}
+      DB_USER=${USUARIO_DO_BANCO}
+      DB_PASSWORD=${SENHA_DO_BANCO}
       API_SECRET=${API_SECRET}
-      MAIL_HOST=${MAIL_HOST}
-      MAIL_PORT=${MAIL_PORT}
+      MAIL_HOST=${SERVIDOR_SMTP}
+      MAIL_PORT=25
       MAIL_USER=${MAIL_USER}
       MAIL_PASSWORD=${MAIL_PASSWORD}
-      FRONTEND_URL=${FRONTEND_URL}
+      FRONTEND_URL=http://localhost:4200/
       EOF
 
     - echo "Conteúdo do .env:"
