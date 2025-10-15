@@ -16,7 +16,7 @@ build:
   script:  
     - echo "nameserver 192.168.1.8" | tee /etc/resolv.conf
 
-    # 🔧 Gera o arquivo .env com as variáveis vindas do GitLab
+
     - echo "Gerando .env com variáveis do ambiente..."
     - |
       cat <<EOF > .env
