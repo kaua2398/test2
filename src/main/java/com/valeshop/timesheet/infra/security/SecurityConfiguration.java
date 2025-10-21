@@ -44,24 +44,19 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
-                .cors(c -> c.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.POST, "/users/register").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/users/verify-email").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/users/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/users/forgot-password").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/users/reset-password").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/users/resend-verification").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        // --- MUDANÇA PARA TESTE ---
+        // Vamos permitir QUALQUER origem, QUALQUER método, QUALQUER header
+        configuration.setAllowedOrigins(Arrays.asList("*")); 
+        configuration.setAllowedMethods(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        // configuration.setAllowCredentials(true); // Não pode usar true com AllowedOrigins("*")
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
 
