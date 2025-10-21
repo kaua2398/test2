@@ -28,17 +28,13 @@ public class SecurityConfiguration {
 
     @Autowired
     SecurityFilter securityFilter;
-
-    // Esta variável PRECISA ser configurada no Rancher (Veja Passo 2)
     @Value("${frontend.url}")
     private String frontendUrl;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // --- MUDANÇA AQUI ---
-        // Removida a string vazia "". Apenas a URL do frontend é necessária.
-        configuration.setAllowedOrigins(Arrays.asList(frontendUrl));
+        configuration.setAllowedOrigins(Arrays.asList("", frontendUrl));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
         configuration.setAllowCredentials(true);
@@ -52,7 +48,6 @@ public class SecurityConfiguration {
         return http
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
                 .cors(c -> c.configurationSource(corsConfigurationSource()))
-                // Esta linha já estava correta e desabilita o CSRF.
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
