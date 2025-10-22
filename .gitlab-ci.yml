@@ -19,6 +19,7 @@ build:
 
     - echo "Gerando .env com variáveis do ambiente..."
     - |
+      - |
       cat <<EOF > .env
       DB_URL=${URL_BANCO}
       DB_USER=${USUARIO_DO_BANCO}
@@ -26,10 +27,11 @@ build:
       API_SECRET=${API_SECRET}
       MAIL_HOST=${SERVIDOR_SMTP}
       MAIL_PORT=25
-      MAIL_USER=${EMAIL_DE_ENVIO_SMTP}
-      MAIL_PASSWORD=${SENHA_DE_EMAIL_SMTP}
+      MAIL_USER=${EMAIL_DE_ENVIO_SMTP:-documentos@valeshop.com.br}
+      MAIL_PASSWORD=${SENHA_DE_EMAIL_SMTP:-}
       FRONTEND_URL=https://controle-demandas.valeshop.com.br
       EOF
+
 
     - echo "Conteúdo do .env:"
     - cat .env
