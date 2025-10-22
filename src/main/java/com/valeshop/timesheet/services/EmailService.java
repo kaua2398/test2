@@ -60,7 +60,7 @@ public class EmailService {
 
     public void sendPasswordResetEmail(String to, String token) {
         String subject = "Redefinição de Senha - Controle de Demandas ValeShop";
-        String resetUrl = frontendUrl + "/reset-password?token=" + token;
+        String resetUrl = frontendUrl + "/forgot-password?token=" + token;
 
         String htmlBody = """
                 <h1>Redefinição de Senha</h1>
