@@ -58,12 +58,12 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable) // Já estava correto
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.POST, "/users/register").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/users/verify-email").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/users/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/users/forgot-password").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/users/reset-password").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/users/resend-verification").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/verify-email").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users/forgot-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users/reset-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users/resend-verification").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated()
                 )
