@@ -15,11 +15,8 @@ build:
     - main
   script:  
     - echo "nameserver 192.168.1.8" | tee /etc/resolv.conf
-
-
     - echo "Gerando .env com variáveis do ambiente..."
     - |
-      - |
       cat <<EOF > .env
       DB_URL=${URL_BANCO}
       DB_USER=${USUARIO_DO_BANCO}
@@ -31,8 +28,6 @@ build:
       MAIL_PASSWORD=${SENHA_DE_EMAIL_SMTP:-}
       FRONTEND_URL=https://controle-demandas.valeshop.com.br
       EOF
-
-
     - echo "Conteúdo do .env:"
     - cat .env
 
