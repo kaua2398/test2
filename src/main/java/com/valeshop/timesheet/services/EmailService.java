@@ -16,13 +16,12 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    
-    @Value("${spring.mail.username:documentos@valeshop.com.br}")
+
+    @Value("${app.mail.from:documentos@valeshop.com.br}")
     private String fromEmail;
 
     @Value("${frontend.url}")
     private String frontendUrl;
-
 
     @Async
     private void sendHtmlEmail(String to, String subject, String htmlBody) {
@@ -30,14 +29,12 @@ public class EmailService {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
 
-            // Define remetente fixo
             helper.setFrom(fromEmail);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
 
             mailSender.send(mimeMessage);
-
             System.out.println("✅ E-mail enviado com sucesso para: " + to);
 
         } catch (MailException | MessagingException e) {
@@ -45,9 +42,6 @@ public class EmailService {
         }
     }
 
-    /**
-     * Envia o e-mail de verificação de cadastro.
-     */
     public void sendVerificationEmail(String to, String token) {
         String subject = "Validação de E-mail - Controle de Demandas ValeShop";
         String verificationUrl = frontendUrl + "/verify-email?token=" + token;
@@ -64,9 +58,6 @@ public class EmailService {
         sendHtmlEmail(to, subject, htmlBody);
     }
 
-    /**
-     * Envia o e-mail de redefinição de senha.
-     */
     public void sendPasswordResetEmail(String to, String token) {
         String subject = "Redefinição de Senha - Controle de Demandas ValeShop";
         String resetUrl = frontendUrl + "/reset-password?token=" + token;
