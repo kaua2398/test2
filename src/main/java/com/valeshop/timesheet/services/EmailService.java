@@ -16,16 +16,14 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    // Mesmo que o SMTP não exija login, precisamos de um remetente válido
+    
     @Value("${spring.mail.username:documentos@valeshop.com.br}")
     private String fromEmail;
 
     @Value("${frontend.url}")
     private String frontendUrl;
 
-    /**
-     * Envia um e-mail HTML de forma assíncrona.
-     */
+
     @Async
     private void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
