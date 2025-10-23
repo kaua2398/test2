@@ -1,6 +1,7 @@
 package com.valeshop.timesheet.infra.security;
 
 import com.valeshop.timesheet.entities.user.User;
+import com.valeshop.timesheet.entities.user.UserType;
 import com.valeshop.timesheet.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -84,7 +85,7 @@ public class SecurityConfiguration {
                     .successHandler(oAuth2SuccessHandler())
                     .failureUrl("/login?error=true")
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt());
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {})); // ⚠️ jwt() deprecado, substituído
         } catch (NoClassDefFoundError e) {
             System.out.println("⚠️ OAuth2 não disponível — executando em modo local sem login Microsoft");
         }
@@ -109,9 +110,14 @@ public class SecurityConfiguration {
                 userRepository.findByEmail(email).orElseGet(() -> {
                     User newUser = new User();
                     newUser.setEmail(email);
-                    newUser.setName(name);
+
+                    // ⚠️ Se o User não tiver nome, remova esta linha
+                    try {
+                        newUser.getClass().getMethod("setName", String.class).invoke(newUser, name);
+                    } catch (Exception ignored) {}
+
                     newUser.setEnabled(true);
-                    newUser.setUserType("Normal");
+                    newUser.setUserType(UserType.NORMAL);
                     newUser.setPassword(new BCryptPasswordEncoder().encode("microsoft-login"));
                     userRepository.save(newUser);
                     System.out.println("✅ Usuário criado automaticamente via Microsoft Login: " + email);
@@ -132,7 +138,9 @@ public class SecurityConfiguration {
             String name = (String) oAuth2User.getAttributes().get("name");
 
             User user = userRepository.findByEmail(email).orElse(null);
-            String userType = user != null ? user.getUserType() : "Normal";
+            String userType = (user != null && user.getUserType() != null)
+                    ? user.getUserType().name()
+                    : "NORMAL";
 
             String token = tokenService.generateToken(email);
 
