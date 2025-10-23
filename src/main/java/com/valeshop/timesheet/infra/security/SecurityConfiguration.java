@@ -1,7 +1,7 @@
 package com.valeshop.timesheet.infra.security;
 
-import com.valeshop.timesheet.user.User;
-import com.valeshop.timesheet.user.UserRepository;
+import com.valeshop.timesheet.entities.user.User;
+import com.valeshop.timesheet.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,7 +40,7 @@ public class SecurityConfiguration {
     private SecurityFilter securityFilter;
 
     @Autowired
-    private TokenService tokenService; // ✅ Usa seu TokenService existente
+    private TokenService tokenService;
 
     @Autowired
     private UserRepository userRepository;
@@ -81,7 +81,7 @@ public class SecurityConfiguration {
                 .oauth2Login(oauth2 -> oauth2
                     .loginPage("/login")
                     .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService()))
-                    .successHandler(oAuth2SuccessHandler()) // ✅ Handler customizado
+                    .successHandler(oAuth2SuccessHandler())
                     .failureUrl("/login?error=true")
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt());
@@ -93,7 +93,7 @@ public class SecurityConfiguration {
         return http.build();
     }
 
-    // ✅ Cria usuário automático no primeiro login via Microsoft
+    // ✅ Cria usuário automaticamente no primeiro login via Microsoft
     @Bean
     public OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService() {
         DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
@@ -134,7 +134,7 @@ public class SecurityConfiguration {
             User user = userRepository.findByEmail(email).orElse(null);
             String userType = user != null ? user.getUserType() : "Normal";
 
-            String token = tokenService.generateToken(email); // 🔥 Usa seu TokenService existente
+            String token = tokenService.generateToken(email);
 
             String redirectUrl = String.format(
                 "https://controle-demandas.valeshop.com.br/callback#token=%s&userType=%s&name=%s&email=%s",
