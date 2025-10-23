@@ -85,7 +85,7 @@ public class SecurityConfiguration {
                     .successHandler(oAuth2SuccessHandler())
                     .failureUrl("/login?error=true")
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {})); // ⚠️ jwt() deprecado, substituído
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
         } catch (NoClassDefFoundError e) {
             System.out.println("⚠️ OAuth2 não disponível — executando em modo local sem login Microsoft");
         }
@@ -111,13 +111,13 @@ public class SecurityConfiguration {
                     User newUser = new User();
                     newUser.setEmail(email);
 
-                    // ⚠️ Se o User não tiver nome, remova esta linha
+                    // tenta atribuir o nome se o método existir
                     try {
                         newUser.getClass().getMethod("setName", String.class).invoke(newUser, name);
                     } catch (Exception ignored) {}
 
                     newUser.setEnabled(true);
-                    newUser.setUserType(UserType.NORMAL);
+                    newUser.setUserType(UserType.Normal); // ✅ Corrigido conforme seu enum
                     newUser.setPassword(new BCryptPasswordEncoder().encode("microsoft-login"));
                     userRepository.save(newUser);
                     System.out.println("✅ Usuário criado automaticamente via Microsoft Login: " + email);
@@ -140,9 +140,9 @@ public class SecurityConfiguration {
             User user = userRepository.findByEmail(email).orElse(null);
             String userType = (user != null && user.getUserType() != null)
                     ? user.getUserType().name()
-                    : "NORMAL";
+                    : "Normal"; // ✅ alinhado ao enum
 
-            String token = tokenService.generateToken(email);
+            String token = tokenService.generateToken(user); // ✅ recebe User, não String
 
             String redirectUrl = String.format(
                 "https://controle-demandas.valeshop.com.br/callback#token=%s&userType=%s&name=%s&email=%s",
