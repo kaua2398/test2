@@ -80,7 +80,7 @@ public class SecurityConfiguration {
         try {
             http
                 .oauth2Login(oauth2 -> oauth2
-                    .loginPage("/login")
+                    .loginPage("/callback")
                     .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService()))
                     .successHandler(oAuth2SuccessHandler())
                     .failureUrl("/login?error=true")
