@@ -1,5 +1,7 @@
 package com.valeshop.timesheet.infra.security;
 
+import com.valeshop.timesheet.user.User;
+import com.valeshop.timesheet.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,20 +15,35 @@ import org.springframework.security.config.annotation.web.configurers.HeadersCon
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.http.HttpServletResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
 
     @Autowired
-    SecurityFilter securityFilter;
+    private SecurityFilter securityFilter;
+
+    @Autowired
+    private TokenService tokenService; // ✅ Usa seu TokenService existente
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -34,6 +51,7 @@ public class SecurityConfiguration {
         configuration.setAllowedOrigins(Arrays.asList("*"));
         configuration.setAllowedMethods(Arrays.asList("*"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -53,16 +71,18 @@ public class SecurityConfiguration {
                 .requestMatchers(HttpMethod.POST, "/api/users/forgot-password").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/users/reset-password").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/users/resend-verification").permitAll()
-                .requestMatchers("/api/oauth2/**").permitAll() // ✅ Adicione esta linha
+                .requestMatchers("/login/**", "/oauth2/**", "/api/oauth2/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()
             );
 
-        
         try {
             http
                 .oauth2Login(oauth2 -> oauth2
-                    .defaultSuccessUrl("https://controle-demandas.valeshop.com.br/callback", true)
+                    .loginPage("/login")
+                    .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService()))
+                    .successHandler(oAuth2SuccessHandler()) // ✅ Handler customizado
+                    .failureUrl("/login?error=true")
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt());
         } catch (NoClassDefFoundError e) {
@@ -70,8 +90,63 @@ public class SecurityConfiguration {
         }
 
         http.addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class);
-
         return http.build();
+    }
+
+    // ✅ Cria usuário automático no primeiro login via Microsoft
+    @Bean
+    public OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService() {
+        DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
+
+        return request -> {
+            OAuth2User oAuth2User = delegate.loadUser(request);
+            Map<String, Object> attributes = oAuth2User.getAttributes();
+
+            String email = (String) attributes.get("preferred_username");
+            String name = (String) attributes.get("name");
+
+            if (email != null) {
+                userRepository.findByEmail(email).orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setName(name);
+                    newUser.setEnabled(true);
+                    newUser.setUserType("Normal");
+                    newUser.setPassword(new BCryptPasswordEncoder().encode("microsoft-login"));
+                    userRepository.save(newUser);
+                    System.out.println("✅ Usuário criado automaticamente via Microsoft Login: " + email);
+                    return newUser;
+                });
+            }
+
+            return oAuth2User;
+        };
+    }
+
+    // ✅ Redireciona para o front-end com token e dados do usuário
+    @Bean
+    public AuthenticationSuccessHandler oAuth2SuccessHandler() {
+        return (request, response, authentication) -> {
+            OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+            String email = (String) oAuth2User.getAttributes().get("preferred_username");
+            String name = (String) oAuth2User.getAttributes().get("name");
+
+            User user = userRepository.findByEmail(email).orElse(null);
+            String userType = user != null ? user.getUserType() : "Normal";
+
+            String token = tokenService.generateToken(email); // 🔥 Usa seu TokenService existente
+
+            String redirectUrl = String.format(
+                "https://controle-demandas.valeshop.com.br/callback#token=%s&userType=%s&name=%s&email=%s",
+                URLEncoder.encode(token, StandardCharsets.UTF_8),
+                URLEncoder.encode(userType, StandardCharsets.UTF_8),
+                URLEncoder.encode(name, StandardCharsets.UTF_8),
+                URLEncoder.encode(email, StandardCharsets.UTF_8)
+            );
+
+            response.setStatus(HttpServletResponse.SC_FOUND);
+            response.sendRedirect(redirectUrl);
+        };
     }
 
     @Bean
