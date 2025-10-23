@@ -53,7 +53,7 @@ public class SecurityConfiguration {
                 .requestMatchers(HttpMethod.POST, "/api/users/forgot-password").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/users/reset-password").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/users/resend-verification").permitAll()
-                .requestMatchers("/oauth2/**").permitAll() // ✅ Adicione esta linha
+                .requestMatchers("/api/oauth2/**").permitAll() // ✅ Adicione esta linha
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()
             );
