@@ -27,6 +27,9 @@ build:
       MAIL_USER=${EMAIL_DE_ENVIO_SMTP:-documentos@valeshop.com.br}
       MAIL_PASSWORD=${SENHA_DE_EMAIL_SMTP:-}
       FRONTEND_URL=https://controle-demandas.valeshop.com.br
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID}
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET}
       EOF
     - echo "Conteúdo do .env:"
     - cat .env
