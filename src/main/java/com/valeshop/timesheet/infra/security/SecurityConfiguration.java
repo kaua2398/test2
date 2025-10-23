@@ -28,15 +28,12 @@ public class SecurityConfiguration {
     @Autowired
     SecurityFilter securityFilter;
 
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); 
+        configuration.setAllowedOrigins(Arrays.asList("*"));
         configuration.setAllowedMethods(Arrays.asList("*"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -44,33 +41,36 @@ public class SecurityConfiguration {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                
-                .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
-                .cors(c -> c.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorize -> authorize
-                        
-                        .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/verify-email").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/users/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/users/forgot-password").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/users/reset-password").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/users/resend-verification").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .anyRequest().authenticated()
-                )
-                
+        http
+            .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/verify-email").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/users/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/users/forgot-password").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/users/reset-password").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/users/resend-verification").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
+                .anyRequest().authenticated()
+            );
+
+        
+        try {
+            http
                 .oauth2Login(oauth2 -> oauth2
-                        
-                        .defaultSuccessUrl("https://controle-demandas.valeshop.com.br/dashboard", true)
+                    .defaultSuccessUrl("https://controle-demandas.valeshop.com.br/dashboard", true)
                 )
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt());
+        } catch (NoClassDefFoundError e) {
+            System.out.println("⚠️ OAuth2 não disponível — executando em modo local sem login Microsoft");
+        }
 
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt())
+        http.addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class);
 
-                .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
+        return http.build();
     }
 
     @Bean
