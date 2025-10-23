@@ -62,7 +62,7 @@ public class SecurityConfiguration {
         try {
             http
                 .oauth2Login(oauth2 -> oauth2
-                    .defaultSuccessUrl("https://controle-demandas.valeshop.com.br/dashboard", true)
+                    .defaultSuccessUrl("https://controle-demandas.valeshop.com.br/callback", true)
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt());
         } catch (NoClassDefFoundError e) {
