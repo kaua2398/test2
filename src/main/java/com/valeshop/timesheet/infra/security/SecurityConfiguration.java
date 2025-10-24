@@ -33,6 +33,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.UUID;
 
 @Configuration
 @EnableWebSecurity
@@ -123,12 +124,18 @@ public class SecurityConfiguration {
                     newUser.setEnabled(false); // Agora exige ativação por e-mail
                     newUser.setUserType(UserType.Normal);
                     newUser.setPassword(new BCryptPasswordEncoder().encode("microsoft-login"));
+
+                    // Gera token de verificação
+                    String verificationToken = UUID.randomUUID().toString();
+                    newUser.setVerificationToken(verificationToken);
+                    newUser.setVerificationTokenExpiry(java.time.LocalDateTime.now().plusDays(1));
+
                     userRepository.save(newUser);
                     System.out.println("✅ Usuário criado automaticamente via Microsoft Login: " + email);
 
                     // Envia e-mail de ativação
                     try {
-                        emailService.sendActivationEmail(newUser);
+                        emailService.sendVerificationEmail(newUser.getEmail(), verificationToken);
                     } catch (Exception e) {
                         System.out.println("Erro ao enviar e-mail de ativação: " + e.getMessage());
                     }
