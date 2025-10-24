@@ -46,6 +46,9 @@ public class SecurityConfiguration {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private EmailService emailService;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -124,11 +127,7 @@ public class SecurityConfiguration {
 
                     // Envia e-mail de ativação
                     try {
-                        // Supondo que exista um EmailService com método sendActivationEmail(User user)
-                        EmailService emailService = (EmailService) request.getServletContext().getAttribute("emailService");
-                        if (emailService != null) {
-                            emailService.sendActivationEmail(newUser);
-                        }
+                        emailService.sendActivationEmail(newUser);
                     } catch (Exception e) {
                         System.out.println("Erro ao enviar e-mail de ativação: " + e.getMessage());
                     }
