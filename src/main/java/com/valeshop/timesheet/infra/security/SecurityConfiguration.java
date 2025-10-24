@@ -109,6 +109,7 @@ public class SecurityConfiguration {
     // ✅ Cria usuário automaticamente no primeiro login via Microsoft
     @Bean
     public OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService() {
+        log.info("[OAuth2] Entrou no método oAuth2UserService");
         DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
 
         return request -> {
