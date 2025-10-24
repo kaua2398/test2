@@ -80,8 +80,7 @@ public class SecurityConfiguration {
         try {
             http
                 .oauth2Login(oauth2 -> oauth2
-                    // Altere para o endpoint padrão do Spring Security
-                    .loginPage("/oauth2/authorization/microsoft")
+                    // Removido loginPage customizado para evitar loop de redirecionamento
                     .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService()))
                     .successHandler(oAuth2SuccessHandler())
                     .failureUrl("/login?error=true")
