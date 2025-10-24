@@ -21,7 +21,7 @@ build:
       DB_URL=${URL_BANCO}
       DB_USER=${USUARIO_DO_BANCO}
       DB_PASSWORD=${SENHA_DO_BANCO}
-      API_SECRET=${API_SECRET}
+      API_SECRET=AauzSC7tDvcf9AI1OQ2jGuR66ecliliJ
       MAIL_HOST=${SERVIDOR_SMTP}
       MAIL_PORT=25
       MAIL_USER=${EMAIL_DE_ENVIO_SMTP:-documentos@valeshop.com.br}
