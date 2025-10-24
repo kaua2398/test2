@@ -34,10 +34,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfiguration.class);
 
     @Autowired
     private SecurityFilter securityFilter;
@@ -105,6 +108,7 @@ public class SecurityConfiguration {
         DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
 
         return request -> {
+            log.info("[OAuth2] Iniciando processamento do login Microsoft");
             OAuth2User oAuth2User = delegate.loadUser(request);
             Map<String, Object> attributes = oAuth2User.getAttributes();
 
@@ -112,35 +116,34 @@ public class SecurityConfiguration {
             String name = (String) attributes.get("name");
 
             if (email != null) {
+                log.info("[OAuth2] E-mail recebido: {}", email);
                 userRepository.findByEmail(email).orElseGet(() -> {
                     User newUser = new User();
                     newUser.setEmail(email);
-
-                    // tenta atribuir o nome se o método existir
                     try {
                         newUser.getClass().getMethod("setName", String.class).invoke(newUser, name);
                     } catch (Exception ignored) {}
-
-                    newUser.setEnabled(false); // Agora exige ativação por e-mail
+                    newUser.setEnabled(false);
                     newUser.setUserType(UserType.Normal);
                     newUser.setPassword(new BCryptPasswordEncoder().encode("microsoft-login"));
 
-                    // Gera token de verificação
                     String verificationToken = UUID.randomUUID().toString();
                     newUser.setVerificationToken(verificationToken);
                     newUser.setVerificationTokenExpiry(java.time.LocalDateTime.now().plusDays(1));
 
                     userRepository.save(newUser);
-                    System.out.println("✅ Usuário criado automaticamente via Microsoft Login: " + email);
-
-                    // Envia e-mail de ativação
+                    log.info("✅ Usuário criado automaticamente via Microsoft Login: {}", email);
+                    log.info("🔑 Token de verificação gerado: {}", verificationToken);
                     try {
                         emailService.sendVerificationEmail(newUser.getEmail(), verificationToken);
+                        log.info("📧 E-mail de ativação enviado para: {}", newUser.getEmail());
                     } catch (Exception e) {
-                        System.out.println("Erro ao enviar e-mail de ativação: " + e.getMessage());
+                        log.error("Erro ao enviar e-mail de ativação para {}: {}", newUser.getEmail(), e.getMessage());
                     }
                     return newUser;
                 });
+            } else {
+                log.warn("[OAuth2] E-mail não encontrado nos atributos do usuário Microsoft");
             }
 
             return oAuth2User;
