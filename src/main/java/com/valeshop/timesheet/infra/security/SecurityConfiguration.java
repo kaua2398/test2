@@ -21,6 +21,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -92,7 +95,10 @@ public class SecurityConfiguration {
         try {
             http
                 .oauth2Login(oauth2 -> oauth2
-                    .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService()))
+                    .userInfoEndpoint(userInfo -> userInfo
+                        .userService(oAuth2UserService())
+                        .oidcUserService(oidcUserService())
+                    )
                     .successHandler(oAuth2SuccessHandler())
                     .failureUrl("/login?error=true")
                 )
@@ -103,6 +109,91 @@ public class SecurityConfiguration {
 
         http.addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    // Support OIDC (Azure AD) to run the same create/send token logic
+    @Bean
+    public OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService() {
+        log.info("[OAuth2] Entered oidcUserService");
+        OidcUserService delegate = new OidcUserService();
+
+        return request -> {
+            log.info("[OAuth2] Starting OIDC (Azure) login processing");
+            OidcUser oidcUser = delegate.loadUser(request);
+
+            String email = null;
+            try {
+                email = oidcUser.getAttribute("preferred_username");
+                if (email == null) email = oidcUser.getAttribute("email");
+                if (email == null) email = oidcUser.getAttribute("upn");
+            } catch (Exception ignored) {}
+
+            String name = null;
+            try { name = oidcUser.getAttribute("name"); } catch (Exception ignored) {}
+
+            if (email != null) {
+                log.info("[OAuth2] (OIDC) Email received: {}", email);
+                User existingUser = userRepository.findByEmail(email).orElse(null);
+
+                if (existingUser != null) {
+                    log.info("[OAuth2] (OIDC) User exists: {} (enabled={})", email, existingUser.isEnabled());
+                    if (!existingUser.isEnabled()) {
+                        String verificationToken = existingUser.getVerificationToken();
+
+                        if (verificationToken == null ||
+                            existingUser.getVerificationTokenExpiry() == null ||
+                            existingUser.getVerificationTokenExpiry().isBefore(java.time.LocalDateTime.now())) {
+
+                            verificationToken = java.util.UUID.randomUUID().toString();
+                            existingUser.setVerificationToken(verificationToken);
+                            existingUser.setVerificationTokenExpiry(java.time.LocalDateTime.now().plusDays(1));
+                            userRepository.save(existingUser);
+                            log.info("[OAuth2] (OIDC) New verification token generated for existing user: {}", verificationToken);
+                        }
+
+                        try {
+                            emailService.sendVerificationEmail(existingUser.getEmail(), verificationToken);
+                            log.info("[OAuth2] (OIDC) Activation email re-sent to: {}", existingUser.getEmail());
+                        } catch (Exception e) {
+                            log.error("[OAuth2] (OIDC) Failed to re-send activation email to {}: {}", existingUser.getEmail(), e.getMessage());
+                        }
+                    }
+                    return oidcUser;
+                }
+
+                // User does not exist: create and send token
+                User newUser = new User();
+                newUser.setEmail(email);
+                try { newUser.getClass().getMethod("setName", String.class).invoke(newUser, name); } catch (Exception ignored) {}
+                newUser.setEnabled(false);
+                newUser.setUserType(UserType.Normal);
+                newUser.setPassword(new BCryptPasswordEncoder().encode("microsoft-login"));
+
+                String verificationToken = java.util.UUID.randomUUID().toString();
+                newUser.setVerificationToken(verificationToken);
+                newUser.setVerificationTokenExpiry(java.time.LocalDateTime.now().plusDays(1));
+
+                try {
+                    userRepository.save(newUser);
+                    userRepository.flush();
+                    log.info("[OAuth2] (OIDC) New user saved: {}", email);
+                } catch (Exception e) {
+                    log.error("[OAuth2] (OIDC) Error saving new user {}: {}", email, e.getMessage());
+                }
+
+                try {
+                    emailService.sendVerificationEmail(newUser.getEmail(), verificationToken);
+                    log.info("[OAuth2] (OIDC) Activation email sent to new user: {}", newUser.getEmail());
+                } catch (Exception e) {
+                    log.error("[OAuth2] (OIDC) Failed to send activation email: {}", e.getMessage());
+                }
+
+                return oidcUser;
+            }
+
+            log.warn("[OAuth2] (OIDC) Email not found in Microsoft user attributes");
+            return oidcUser;
+        };
     }
 
     // ✅ Cria usuário automaticamente no primeiro login via Microsoft
