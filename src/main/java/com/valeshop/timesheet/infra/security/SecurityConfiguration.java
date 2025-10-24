@@ -157,10 +157,11 @@ public class SecurityConfiguration {
 
             User user = userRepository.findByEmail(email).orElse(null);
             if (user == null || !user.isEnabled()) {
-                // Redireciona para página informando que precisa ativar o e-mail
-                String infoUrl = "https://controle-demandas.valeshop.com.br/ativacao-pendente?email=" + URLEncoder.encode(email, StandardCharsets.UTF_8);
-                response.setStatus(HttpServletResponse.SC_FOUND);
-                response.sendRedirect(infoUrl);
+                // Retorna erro 403 com mensagem para o front-end exibir
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json");
+                String json = String.format("{\"message\":\"Conta criada! Verifique seu e-mail (%s) para ativar o acesso.\"}", email);
+                response.getWriter().write(json);
                 return;
             }
             String userType = user.getUserType() != null ? user.getUserType().name() : "Normal";
