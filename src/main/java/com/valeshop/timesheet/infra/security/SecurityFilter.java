@@ -44,8 +44,9 @@ public class SecurityFilter extends OncePerRequestFilter {
             String token = recoverToken(request);
 
             if (token != null) {
+                logger.info("Token recebido e será validado."); // Apenas logue o evento
                 String login = tokenService.validateToken(token);
-                logger.info("Token validado para o login: {}", login);
+                logger.info("Token validado com sucesso.");
                 if (login != null && !login.isEmpty()) {
                     UserDetails user = authorizationService.loadUserByUsername(login);
                     var authentication = new UsernamePasswordAuthenticationToken(
