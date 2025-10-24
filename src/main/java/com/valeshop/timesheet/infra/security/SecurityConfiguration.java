@@ -117,31 +117,52 @@ public class SecurityConfiguration {
 
             if (email != null) {
                 log.info("[OAuth2] E-mail recebido: {}", email);
-                userRepository.findByEmail(email).orElseGet(() -> {
-                    User newUser = new User();
-                    newUser.setEmail(email);
-                    try {
-                        newUser.getClass().getMethod("setName", String.class).invoke(newUser, name);
-                    } catch (Exception ignored) {}
-                    newUser.setEnabled(false);
-                    newUser.setUserType(UserType.Normal);
-                    newUser.setPassword(new BCryptPasswordEncoder().encode("microsoft-login"));
-
-                    String verificationToken = UUID.randomUUID().toString();
-                    newUser.setVerificationToken(verificationToken);
-                    newUser.setVerificationTokenExpiry(java.time.LocalDateTime.now().plusDays(1));
-
-                    userRepository.save(newUser);
-                    log.info("✅ Usuário criado automaticamente via Microsoft Login: {}", email);
-                    log.info("🔑 Token de verificação gerado: {}", verificationToken);
-                    try {
-                        emailService.sendVerificationEmail(newUser.getEmail(), verificationToken);
-                        log.info("📧 E-mail de ativação enviado para: {}", newUser.getEmail());
-                    } catch (Exception e) {
-                        log.error("Erro ao enviar e-mail de ativação para {}: {}", newUser.getEmail(), e.getMessage());
+                User existingUser = userRepository.findByEmail(email).orElse(null);
+                if (existingUser != null) {
+                    log.info("[OAuth2] Usuário já existe: {} (enabled={})", email, existingUser.isEnabled());
+                    if (!existingUser.isEnabled()) {
+                        // Reenvia e-mail de ativação se não estiver habilitado
+                        String verificationToken = existingUser.getVerificationToken();
+                        if (verificationToken == null || existingUser.getVerificationTokenExpiry() == null || existingUser.getVerificationTokenExpiry().isBefore(java.time.LocalDateTime.now())) {
+                            verificationToken = UUID.randomUUID().toString();
+                            existingUser.setVerificationToken(verificationToken);
+                            existingUser.setVerificationTokenExpiry(java.time.LocalDateTime.now().plusDays(1));
+                            userRepository.save(existingUser);
+                            log.info("🔑 Novo token de verificação gerado para usuário existente: {}", verificationToken);
+                        }
+                        try {
+                            emailService.sendVerificationEmail(existingUser.getEmail(), verificationToken);
+                            log.info("📧 E-mail de ativação reenviado para usuário existente: {}", existingUser.getEmail());
+                        } catch (Exception e) {
+                            log.error("Erro ao reenviar e-mail de ativação para {}: {}", existingUser.getEmail(), e.getMessage());
+                        }
                     }
-                    return newUser;
-                });
+                    return oAuth2User;
+                }
+                // Usuário não existe, cria novo
+                User newUser = new User();
+                newUser.setEmail(email);
+                try {
+                    newUser.getClass().getMethod("setName", String.class).invoke(newUser, name);
+                } catch (Exception ignored) {}
+                newUser.setEnabled(false);
+                newUser.setUserType(UserType.Normal);
+                newUser.setPassword(new BCryptPasswordEncoder().encode("microsoft-login"));
+
+                String verificationToken = UUID.randomUUID().toString();
+                newUser.setVerificationToken(verificationToken);
+                newUser.setVerificationTokenExpiry(java.time.LocalDateTime.now().plusDays(1));
+
+                userRepository.save(newUser);
+                log.info("✅ Usuário criado automaticamente via Microsoft Login: {}", email);
+                log.info("🔑 Token de verificação gerado: {}", verificationToken);
+                try {
+                    emailService.sendVerificationEmail(newUser.getEmail(), verificationToken);
+                    log.info("📧 E-mail de ativação enviado para: {}", newUser.getEmail());
+                } catch (Exception e) {
+                    log.error("Erro ao enviar e-mail de ativação para {}: {}", newUser.getEmail(), e.getMessage());
+                }
+                return oAuth2User;
             } else {
                 log.warn("[OAuth2] E-mail não encontrado nos atributos do usuário Microsoft");
             }
@@ -150,21 +171,30 @@ public class SecurityConfiguration {
         };
     }
 
-    // ✅ Redireciona para o front-end com token e dados do usuário
     @Bean
     public AuthenticationSuccessHandler oAuth2SuccessHandler() {
         return (request, response, authentication) -> {
+            log.info("[OAuth2] Iniciando oAuth2SuccessHandler");
             OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
             String email = (String) oAuth2User.getAttributes().get("preferred_username");
             String name = (String) oAuth2User.getAttributes().get("name");
 
             User user = userRepository.findByEmail(email).orElse(null);
+            if (user == null) {
+                log.warn("[OAuth2] Usuário não encontrado no banco: {}", email);
+            } else {
+                log.info("[OAuth2] Usuário encontrado: {} (enabled={})", email, user.isEnabled());
+            }
             if (user == null || !user.isEnabled()) {
-                // Retorna erro 403 com mensagem para o front-end exibir
-                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                response.setContentType("application/json");
-                String json = String.format("{\"message\":\"Conta criada! Verifique seu e-mail (%s) para ativar o acesso.\"}", email);
-                response.getWriter().write(json);
+                // Retorna HTML com postMessage para o front-end
+                response.setStatus(HttpServletResponse.SC_OK);
+                response.setContentType("text/html;charset=UTF-8");
+                String message = String.format("Conta criada! Verifique seu e-mail (%s) para ativar o acesso.", email);
+                String html = "<html><body><script>\n" +
+                    "window.opener && window.opener.postMessage({ type: 'activation', message: '" + message + "' }, '*');\n" +
+                    "window.close();\n" +
+                    "</script><p>" + message + "</p></body></html>";
+                response.getWriter().write(html);
                 return;
             }
             String userType = user.getUserType() != null ? user.getUserType().name() : "Normal";
@@ -176,7 +206,7 @@ public class SecurityConfiguration {
                 URLEncoder.encode(name, StandardCharsets.UTF_8),
                 URLEncoder.encode(email, StandardCharsets.UTF_8)
             );
-
+            log.info("[OAuth2] Login bem-sucedido, redirecionando para front-end: {}", redirectUrl);
             response.setStatus(HttpServletResponse.SC_FOUND);
             response.sendRedirect(redirectUrl);
         };
