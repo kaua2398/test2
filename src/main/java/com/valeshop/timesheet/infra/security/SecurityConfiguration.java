@@ -3,6 +3,7 @@ package com.valeshop.timesheet.infra.security;
 import com.valeshop.timesheet.entities.user.User;
 import com.valeshop.timesheet.entities.user.UserType;
 import com.valeshop.timesheet.repositories.UserRepository;
+import com.valeshop.timesheet.services.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
