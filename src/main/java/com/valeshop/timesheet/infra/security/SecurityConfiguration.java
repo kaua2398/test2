@@ -153,7 +153,13 @@ public class SecurityConfiguration {
                 newUser.setVerificationToken(verificationToken);
                 newUser.setVerificationTokenExpiry(java.time.LocalDateTime.now().plusDays(1));
 
-                userRepository.save(newUser);
+                try {
+                    userRepository.save(newUser);
+                    userRepository.flush();
+                    log.info("✅ Usuário salvo no banco: {}", email);
+                } catch (Exception e) {
+                    log.error("❌ Erro ao salvar usuário no banco: {} - {}", email, e.getMessage());
+                }
                 log.info("✅ Usuário criado automaticamente via Microsoft Login: {}", email);
                 log.info("🔑 Token de verificação gerado: {}", verificationToken);
                 try {
