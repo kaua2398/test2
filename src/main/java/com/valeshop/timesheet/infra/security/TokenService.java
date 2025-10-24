@@ -5,6 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.valeshop.timesheet.entities.user.User;
+import com.valeshop.timesheet.exceptions.InvalidTokenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,10 +48,11 @@ public class TokenService {
                     .verify(token)
                     .getSubject();
         } catch (JWTVerificationException exception) {
-            logger.warn("A validação do token JWT falhou: {}", exception.getMessage());
-            return null; // Retorna nulo para indicar claramente a falha
+            logger.warn("Falha na validação do token JWT: {}", exception.getMessage());
+            throw new InvalidTokenException("Token inválido ou expirado");
         }
     }
+
 
     private Instant generateExpirationTime() {
         return LocalDateTime.now().plusHours(1).toInstant(ZoneOffset.of("-03:00"));

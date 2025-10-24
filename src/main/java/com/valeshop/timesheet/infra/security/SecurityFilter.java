@@ -1,5 +1,6 @@
 package com.valeshop.timesheet.infra.security;
 
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.valeshop.timesheet.exceptions.InvalidTokenException;
 import com.valeshop.timesheet.exceptions.UserNotFoundException;
 import com.valeshop.timesheet.services.AuthorizationService;
@@ -25,29 +26,44 @@ public class SecurityFilter extends OncePerRequestFilter {
     @Autowired
     private AuthorizationService authorizationService;
 
+    private boolean isPublicRoute(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/api/users/register")
+                || path.startsWith("/api/users/login")
+                || path.startsWith("/api/users/verify-email")
+                || path.startsWith("/api/users/reset-password")
+                || path.startsWith("/api/users/resend-verification")
+                || path.startsWith("/api/users/forgot-password");
+    }
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         try {
-            String token = this.recoverToken(request);
+            String token = recoverToken(request);
 
             if (token != null) {
                 String login = tokenService.validateToken(token);
                 if (login != null && !login.isEmpty()) {
-                    UserDetails user = this.authorizationService.loadUserByUsername(login);
-
-                    var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                    UserDetails user = authorizationService.loadUserByUsername(login);
+                    var authentication = new UsernamePasswordAuthenticationToken(
+                            user, null, user.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
-        } catch (UserNotFoundException e) {
-            throw new  UserNotFoundException();
-        } catch (InvalidTokenException e) {
-            throw new InvalidTokenException();
+        } catch (UserNotFoundException | InvalidTokenException e) {
+            SecurityContextHolder.clearContext();
+            logger.warn("Token inválido ou usuário não encontrado: {}", e);
+        } catch (Exception e) {
+            SecurityContextHolder.clearContext();
+            logger.error("Erro inesperado no filtro de segurança: {}", e);
         }
 
         filterChain.doFilter(request, response);
     }
+
+
 
     private String recoverToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
