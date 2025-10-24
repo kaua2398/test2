@@ -156,12 +156,15 @@ public class SecurityConfiguration {
             String name = (String) oAuth2User.getAttributes().get("name");
 
             User user = userRepository.findByEmail(email).orElse(null);
-            String userType = (user != null && user.getUserType() != null)
-                    ? user.getUserType().name()
-                    : "Normal"; // ✅ alinhado ao enum
-
-            String token = tokenService.generateToken(user); // ✅ recebe User, não String
-
+            if (user == null || !user.isEnabled()) {
+                // Redireciona para página informando que precisa ativar o e-mail
+                String infoUrl = "https://controle-demandas.valeshop.com.br/ativacao-pendente?email=" + URLEncoder.encode(email, StandardCharsets.UTF_8);
+                response.setStatus(HttpServletResponse.SC_FOUND);
+                response.sendRedirect(infoUrl);
+                return;
+            }
+            String userType = user.getUserType() != null ? user.getUserType().name() : "Normal";
+            String token = tokenService.generateToken(user);
             String redirectUrl = String.format(
                 "https://controle-demandas.valeshop.com.br/callback#token=%s&userType=%s&name=%s&email=%s",
                 URLEncoder.encode(token, StandardCharsets.UTF_8),
