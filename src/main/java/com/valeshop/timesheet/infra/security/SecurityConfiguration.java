@@ -116,11 +116,22 @@ public class SecurityConfiguration {
                         newUser.getClass().getMethod("setName", String.class).invoke(newUser, name);
                     } catch (Exception ignored) {}
 
-                    newUser.setEnabled(true);
-                    newUser.setUserType(UserType.Normal); // ✅ Corrigido conforme seu enum
+                    newUser.setEnabled(false); // Agora exige ativação por e-mail
+                    newUser.setUserType(UserType.Normal);
                     newUser.setPassword(new BCryptPasswordEncoder().encode("microsoft-login"));
                     userRepository.save(newUser);
                     System.out.println("✅ Usuário criado automaticamente via Microsoft Login: " + email);
+
+                    // Envia e-mail de ativação
+                    try {
+                        // Supondo que exista um EmailService com método sendActivationEmail(User user)
+                        EmailService emailService = (EmailService) request.getServletContext().getAttribute("emailService");
+                        if (emailService != null) {
+                            emailService.sendActivationEmail(newUser);
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Erro ao enviar e-mail de ativação: " + e.getMessage());
+                    }
                     return newUser;
                 });
             }
