@@ -307,16 +307,16 @@ public class SecurityConfiguration {
 
             String userType = user.getUserType() != null ? user.getUserType().name() : "Normal";
             String token = tokenService.generateToken(user);
-
+            // Redireciona para a página principal do sistema já autenticado
             String redirectUrl = String.format(
-                "https://controle-demandas.valeshop.com.br/callback#token=%s&userType=%s&name=%s&email=%s",
+                "%s/#token=%s&userType=%s&name=%s&email=%s",
+                frontendUrl,
                 URLEncoder.encode(token, StandardCharsets.UTF_8),
                 URLEncoder.encode(userType, StandardCharsets.UTF_8),
                 URLEncoder.encode(name, StandardCharsets.UTF_8),
                 URLEncoder.encode(email, StandardCharsets.UTF_8)
             );
-
-            log.info("[OAuth2] Login bem-sucedido — redirecionando para front-end: {}", redirectUrl);
+            log.info("[OAuth2] Login bem-sucedido — redirecionando para página principal: {}", redirectUrl);
             response.setStatus(HttpServletResponse.SC_FOUND);
             response.sendRedirect(redirectUrl);
         };
