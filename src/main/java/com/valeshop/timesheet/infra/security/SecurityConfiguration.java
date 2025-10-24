@@ -144,41 +144,41 @@ public class SecurityConfiguration {
                     }
                     return oAuth2User;
                 }
-                // Usuário não existe, cria novo
-                User newUser = new User();
-                newUser.setEmail(email);
-                try {
-                    newUser.getClass().getMethod("setName", String.class).invoke(newUser, name);
-                } catch (Exception ignored) {}
-                newUser.setEnabled(false);
-                newUser.setUserType(UserType.Normal);
-                newUser.setPassword(new BCryptPasswordEncoder().encode("microsoft-login"));
+        // Usuário não existe, cria novo
+        User newUser = new User();
+        newUser.setEmail(email);
+        try {
+            newUser.getClass().getMethod("setName", String.class).invoke(newUser, name);
+        } catch (Exception ignored) {}
 
-                String verificationToken = UUID.randomUUID().toString();
-                newUser.setVerificationToken(verificationToken);
-                newUser.setVerificationTokenExpiry(java.time.LocalDateTime.now().plusDays(1));
+        newUser.setEnabled(false);
+        newUser.setUserType(UserType.Normal);
+        newUser.setPassword(new BCryptPasswordEncoder().encode("microsoft-login"));
 
-                try {
-                    userRepository.save(newUser);
-                    userRepository.flush();
-                    log.info("✅ Usuário salvo no banco: {}", email);
-                } catch (Exception e) {
-                    log.error("❌ Erro ao salvar usuário no banco: {} - {}", email, e.getMessage());
-                }
-                log.info("✅ Usuário criado automaticamente via Microsoft Login: {}", email);
-                log.info("🔑 Token de verificação gerado: {}", verificationToken);
-                try {
-                    emailService.sendVerificationEmail(newUser.getEmail(), verificationToken);
-                    log.info("📧 E-mail de ativação enviado para: {}", newUser.getEmail());
-                } catch (Exception e) {
-                    log.error("Erro ao enviar e-mail de ativação para {}: {}", newUser.getEmail(), e.getMessage());
-                }
-                return oAuth2User;
-            } else {
-                log.warn("[OAuth2] E-mail não encontrado nos atributos do usuário Microsoft");
+        // Gera token de verificação com expiração
+        String verificationToken = UUID.randomUUID().toString();
+        newUser.setVerificationToken(verificationToken);
+        newUser.setVerificationTokenExpiry(java.time.LocalDateTime.now().plusDays(1));
+
+        try {
+            userRepository.save(newUser);
+            userRepository.flush();
+            log.info("✅ Usuário salvo no banco: {}", email);
+        } catch (Exception e) {
+            log.error("❌ Erro ao salvar usuário no banco: {} - {}", email, e.getMessage());
+        }
+
+        // ✅ Envia o e-mail de ativação imediatamente
+        try {
+            log.info("📨 Enviando e-mail de ativação para novo usuário: {}", email);
+            emailService.sendVerificationEmail(newUser.getEmail(), verificationToken);
+            log.info("📧 E-mail de ativação enviado com sucesso para {}", newUser.getEmail());
+        } catch (Exception e) {
+            log.error("❌ Falha ao enviar e-mail de ativação para {}: {}", newUser.getEmail(), e.getMessage());
+        }
+
+        return oAuth2User;
             }
-
-            return oAuth2User;
         };
     }
 
