@@ -87,6 +87,7 @@ public class SecurityConfiguration {
                 .requestMatchers(HttpMethod.POST, "/api/users/forgot-password").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/users/reset-password").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/users/resend-verification").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/auth/**").permitAll()
                 .requestMatchers("/login/**", "/oauth2/**", "/api/oauth2/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()
@@ -308,8 +309,9 @@ public class SecurityConfiguration {
             String userType = user.getUserType() != null ? user.getUserType().name() : "Normal";
             String token = tokenService.generateToken(user);
 
+            String baseCallback = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
             String redirectUrl = String.format(
-                "https://controle-demandas.valeshop.com.br/callback#token=%s&userType=%s&name=%s&email=%s",
+                baseCallback + "/callback#token=%s&userType=%s&name=%s&email=%s",
                 URLEncoder.encode(token, StandardCharsets.UTF_8),
                 URLEncoder.encode(userType, StandardCharsets.UTF_8),
                 URLEncoder.encode(name, StandardCharsets.UTF_8),
